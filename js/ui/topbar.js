@@ -33,9 +33,10 @@ export function initTopbar(root) {
   els.tap = h('button', { class: 'pill-btn', title: 'Tap tempo', onclick: tapTempo }, 'TAP');
   els.key = h('button', { class: 'pill', title: 'Project key & scale', onclick: (e) => keyMenu(e.currentTarget) });
   els.sig = h('button', { class: 'pill', title: 'Time signature', onclick: (e) => menuBelow(e.currentTarget, [[4, 4], [3, 4], [2, 4], [5, 4], [6, 8], [7, 8], [12, 8]].map(([a, b]) => ({ label: `${a}/${b}`, checked: S.project.sig[0] === a && S.project.sig[1] === b, action: () => { checkpoint(); S.project.sig = [a, b]; changed(true); } }))) });
+  els.swing = h('button', { class: 'pill', title: 'Swing – delay the off-beats for a shuffled groove', onclick: (e) => swingMenu(e.currentTarget) });
   const center = h('div', { class: 'tb-center' },
     h('div', { class: 'transport' }, els.rew, els.play, els.rec, els.loop, els.metro, els.count), els.time,
-    h('div', { class: 'meta-pills' }, h('div', { class: 'pill bpm-pill' }, els.bpm, h('span', null, 'BPM'), els.tap), els.key, els.sig));
+    h('div', { class: 'meta-pills' }, h('div', { class: 'pill bpm-pill' }, els.bpm, h('span', null, 'BPM'), els.tap), els.key, els.sig, els.swing));
 
   // right
   btn('undo', 'undo', 'Undo (Ctrl+Z)', undo, 'sm'); btn('redo', 'redo', 'Redo (Ctrl+Shift+Z)', redo, 'sm');
@@ -66,6 +67,26 @@ function keyMenu(anchor) {
   m.append(grid, h('div', { class: 'menu-header' }, 'Scale'), sc);
 }
 
+// Swing is shown MPC-style: 50% is straight, 67% a triplet shuffle, 75% the maximum.
+const swingPct = (a) => Math.round(50 + 25 * a);
+function swingMenu(anchor) {
+  const p = S.project, sw = (p.swing ||= { amount: 0, grid: 0.25 });
+  const r = anchor.getBoundingClientRect();
+  const m = showMenu(r.left, r.bottom + 4, [{ header: 'Swing' }]);
+  m.classList.add('swing-pop');
+  const val = h('div', { class: 'sw-val' }), note = h('p', { class: 'muted small sw-note' }, 'Delays every second note of the grid when playing and exporting. Applies to MIDI, drum and sampler regions; audio clips are not affected.');
+  const slider = h('input', { type: 'range', class: 'slider sw-slider', min: 0, max: 100, step: 1, value: Math.round(sw.amount * 100), 'aria-label': 'Swing amount' });
+  const show = () => { val.textContent = sw.amount > 0 ? swingPct(sw.amount) + '%' : 'Straight'; slider.value = Math.round(sw.amount * 100); gridBtns.forEach((b) => b.classList.toggle('on', +b.dataset.g === sw.grid)); presets.forEach((b) => b.classList.toggle('on', Math.abs(+b.dataset.a - sw.amount) < 0.02)); };
+  let cp = false;
+  const set = (a) => { if (!cp) { checkpoint(); cp = true; setTimeout(() => (cp = false), 700); } sw.amount = Math.max(0, Math.min(1, a)); changed(); show(); };
+  slider.addEventListener('input', () => set(+slider.value / 100));
+  slider.addEventListener('dblclick', () => set(0));
+  const gridBtns = [['1/8', 0.5], ['1/16', 0.25]].map(([l, g]) => h('button', { class: 'chip', dataset: { g }, onclick: () => { checkpoint(); sw.grid = g; changed(); show(); } }, l));
+  const presets = [['Off', 0], ['Light', 0.33], ['Shuffle', 0.67], ['Hard', 1]].map(([l, a]) => h('button', { class: 'chip', dataset: { a }, onclick: () => set(a) }, l));
+  m.append(h('div', { class: 'sw-body' }, h('div', { class: 'sw-top' }, h('span', { class: 'muted small' }, 'Amount'), val), slider, h('div', { class: 'chips' }, presets), h('div', { class: 'sw-grid' }, h('span', { class: 'muted small' }, 'Swing note'), h('div', { class: 'chips' }, gridBtns)), note));
+  show();
+}
+
 function fileMenu(anchor) {
   menuBelow(anchor, [
     { label: 'New project', action: () => openTemplates() },
@@ -94,6 +115,7 @@ function sync() {
   if (document.activeElement !== els.bpm) els.bpm.value = p.bpm;
   els.key.textContent = `${KEYS[p.key]} ${p.scale === 'major' ? 'maj' : p.scale === 'minor' ? 'min' : p.scale}`;
   els.sig.textContent = `${p.sig[0]}/${p.sig[1]}`;
+  const swa = p.swing?.amount || 0; els.swing.textContent = swa > 0 ? `Swing ${swingPct(swa)}%` : 'Swing'; els.swing.classList.toggle('active', swa > 0);
   els.undo.disabled = !canUndo(); els.redo.disabled = !canRedo();
   els.loop.classList.toggle('on', p.loop.on); els.metro.classList.toggle('on', S.ui.metronome); els.count.classList.toggle('on', settings.countIn);
   els.play.innerHTML = icon(engine.playing ? 'pause' : 'play', 20); els.play.classList.toggle('on', engine.playing);

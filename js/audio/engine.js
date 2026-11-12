@@ -154,6 +154,15 @@ export function triggerNote(g, track, dest, note, when, dur, vel, live = null) {
   return null;
 }
 
+// Swing delays every second note of each grid pair (the "off-beats") by up to half a grid step.
+// amount 0 = straight, 0.67 = triplet feel, 1 = hard swing (75%). grid is in beats: 0.5 = 1/8, 0.25 = 1/16.
+export function swingDelay(beat, sw) {
+  if (!sw || !(sw.amount > 0)) return 0;
+  const g = sw.grid || 0.25, pos = beat / g, idx = Math.round(pos);
+  if (Math.abs(pos - idx) > 0.2 || idx % 2 === 0) return 0;
+  return Math.min(1, sw.amount) * 0.5 * g;
+}
+
 export function scheduleSegment(g, p, segStart, segEnd, t0, restart) {
   const ctx = g.ctx, spb = 60 / p.bpm, time = (b) => t0 + (b - segStart) * spb;
   for (const t of p.tracks) {
@@ -171,7 +180,7 @@ export function scheduleSegment(g, p, segStart, segEnd, t0, restart) {
           const nb = r.start + k * L + n.s;
           if (nb < segStart - 1e-9 || nb >= segEnd || nb >= re) continue;
           const dur = Math.min(n.l, re - nb);
-          triggerNote(g, t, dest, n.p, time(nb), dur * spb, n.v);
+          triggerNote(g, t, dest, n.p, time(nb + swingDelay(nb, p.swing)), dur * spb, n.v);
         }
       } else {
         const info = audioInfo(r); if (!info) continue;
@@ -219,7 +228,7 @@ class Engine {
   sync() {
     if (!this.graph) return;
     this.graph.sync(S.project);
-    const sig = JSON.stringify(S.project.tracks.map((t) => [t.id, t.inst, t.kit, t.pads, t.regions, t.auto, S.project.bpm, S.project.loop]));
+    const sig = JSON.stringify(S.project.tracks.map((t) => [t.id, t.inst, t.kit, t.pads, t.regions, t.auto, S.project.bpm, S.project.loop, S.project.swing]));
     if (sig !== this.sig) { this.sig = sig; if (this.playing && !this.recordingBusy) this.restartSoon(); }
   }
   restartSoon() { clearTimeout(this._rt); this._rt = setTimeout(() => { if (this.playing) this.restartAt(this.pos(), true); }, 60); }

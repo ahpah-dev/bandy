@@ -74,7 +74,7 @@ export const projectEnd = () => Math.max(0, ...S.project.tracks.flatMap((t) => t
 export const contentBeats = (r, p = S.project) => (r.type === 'midi' ? r.loopLen : (r.srcLen / (r.speed || 1)) * (p.bpm / 60));
 
 export function newProject(name = 'Untitled') {
-  return { v: 1, id: uid('p'), name, bpm: 100, sig: [4, 4], key: 0, scale: 'major', loop: { on: false, start: 0, end: 16 }, master: { vol: 0, mastering: 'Off' }, tracks: [], lyrics: '', created: Date.now(), bufMeta: {} };
+  return { v: 1, id: uid('p'), name, bpm: 100, sig: [4, 4], key: 0, scale: 'major', loop: { on: false, start: 0, end: 16 }, swing: { amount: 0, grid: 0.25 }, master: { vol: 0, mastering: 'Off' }, tracks: [], lyrics: '', created: Date.now(), bufMeta: {} };
 }
 
 export function fxFromChain(chain) { return chain.map((c) => ({ id: uid('fx'), type: c.type, params: { ...defaultParams(c.type), ...c.params }, bypass: false })); }

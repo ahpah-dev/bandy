@@ -127,3 +127,14 @@ button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
 .ai-sfoot { display: flex; justify-content: flex-end; }
 .btn.danger { color: var(--accent2); }
 .ai-dot.warn { background: var(--warn); box-shadow: 0 0 8px rgba(255, 176, 32, .7); }
+
+/* Swing popover */
+.pill.active { border-color: var(--accent); color: var(--accent2); background: var(--accent-soft); }
+.swing-pop { min-width: 270px; }
+.sw-body { display: flex; flex-direction: column; gap: 10px; padding: 4px 8px 8px; }
+.sw-top { display: flex; align-items: baseline; justify-content: space-between; }
+.sw-val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sw-slider { width: 100%; }
+.sw-grid { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sw-note { margin: 0; line-height: 1.4; }
+@media (max-width: 1400px) { .meta-pills { gap: 4px; } .pill { padding: 0 9px; font-size: 12px; } .tb-center { gap: 10px; } }

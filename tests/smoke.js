@@ -4,6 +4,7 @@ import { loadWorklets } from '../js/audio/engine.js';
 import { LOOPS, buildLoop } from '../js/audio/loops.js';
 import { stretchBuffer, encodeWav } from '../js/audio/dsp.js';
 import { zip, unzip } from '../js/zip.js';
+import { swingDelay } from '../js/audio/engine.js';
 
 const out = document.getElementById('out');
 let fails = 0, total = 0;
@@ -75,6 +76,13 @@ for (const l of LOOPS) { const n = buildLoop(l, 3); log(n.length > 0 && n.every(
   log(!s4.bad && s4.pk === 0, 'sample instrument with missing buffer is silent, not broken');
 }
 { const z = zip([{ name: 'a.txt', data: new TextEncoder().encode('hello') }]); const e = await unzip(new Uint8Array(await z.arrayBuffer())); log(e.length === 1 && new TextDecoder().decode(e[0].data) === 'hello', 'zip round-trip'); }
+
+{ const sw = { amount: 1, grid: 0.25 };
+  log(swingDelay(0, sw) === 0 && swingDelay(0.5, sw) === 0, 'swing leaves on-beat 16ths untouched');
+  log(Math.abs(swingDelay(0.25, sw) - 0.125) < 1e-9 && Math.abs(swingDelay(0.75, sw) - 0.125) < 1e-9, 'swing delays off-beat 16ths by half a step at 100%');
+  log(Math.abs(swingDelay(0.5, { amount: 0.67, grid: 0.5 }) - 0.1675) < 1e-9, 'swing 67% on 1/8 grid');
+  log(swingDelay(0.25, { amount: 0, grid: 0.25 }) === 0 && swingDelay(0.25, undefined) === 0, 'no swing when off or missing');
+  log(swingDelay(0.37, sw) === 0, 'swing ignores notes far from the grid'); }
 
 out.innerHTML += `\n\n<b class="${fails ? 'bad' : 'ok'}">${total - fails}/${total} passed</b>`;
 document.title = fails ? 'FAIL' : 'PASS';

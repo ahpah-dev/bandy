@@ -35,7 +35,7 @@ ES modules and AudioWorklets need `http://` (not `file://`), so use any static s
 | **Mixer & mastering** | Channel strips with faders, pan, meters and inserts · master fader · one-click mastering presets (Universal, Tape, Punchy, Clarity, Warm, Loud) with limiter and soft clipper |
 | **Audio editing** | Sample editor with trim handles, gain, pitch shift, time-stretch (WSOLA, pitch-independent), reverse, fades, normalise, fit-to-tempo, bounce to WAV · experimental stem splitter (bass / vocals-centre / instruments-sides / highs) |
 | **Automation** | Volume and pan automation lanes with draggable breakpoints |
-| **Project** | Tempo (with tap), key & scale, time signature, undo / redo (120 steps), lyrics & notes, light / dark theme, auto-save to your browser (IndexedDB), reopen projects, shareable `.bandy` project files |
+| **Project** | Tempo (with tap), key & scale, time signature, **swing** (off-beat delay on a 1/8 or 1/16 grid, shown MPC-style 50–75%, applied to MIDI/drum/sampler playback and exports), undo / redo (120 steps), lyrics & notes, light / dark theme, auto-save to your browser (IndexedDB), reopen projects, shareable `.bandy` project files |
 | **Export** | 16/24/32-bit WAV mixdown · loop range only · normalise · per-track stems (`.zip`) · standard MIDI file · full project file |
 | **Extras** | Tuner, keyboard shortcuts (press `?`), metronome with accented downbeats |
 

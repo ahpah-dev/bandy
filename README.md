@@ -53,9 +53,12 @@ Click **+ New instrument** in the Sounds tab (or the pencil on a custom sound) t
 
 ### AI Assist
 
-Open **AI Assist** in the instrument designer to generate editable synth settings from a description. Run `python tools/ai_bridge.py` from your Bandy checkout and leave it running while using the feature. The bridge listens only on this computer and forwards requests to the selected provider; it does not save your key or prompts. It supports the GitHub Pages site and the local development server on port 5173 or 5174.
+The designer opens with an **AI Assist** card: describe a sound ("warm, slow analog pad"), or tap one of the example ideas, and press **Generate** (or `Ctrl/Cmd+Enter`). The result lands in the normal designer controls, plays a preview note, and shows a summary of what was built, so you can tweak it by hand and **Save**. Use **Variation** for a different take, or **Undo** to bring back the sound you had before.
 
-By default, enter an OpenAI API key and model ID. Alternatively, select Kilo Gateway, sign in at [Kilo](https://app.kilo.ai/), and copy your Gateway API key from your profile. To use your own provider key or a supported subscription through Kilo, configure it in Kilo's BYOK settings and choose a matching model ID. Keys are held only while the designer is open. Kilo does not document an external-app OAuth sign-in for its Gateway, so Bandy uses its documented API-key authentication. Your prompt goes to the selected provider and model, and usage may be billed. Generated sounds are synth presets, not audio samples; review and save them in the designer.
+1. Start the local bridge from your Bandy folder and leave it running: `python tools/ai_bridge.py`. The card shows a green **Bridge online** badge when it is reachable (click the badge to re-check).
+2. Open **Provider** and choose OpenAI (your own API key) or [Kilo Gateway](https://app.kilo.ai/) with its Gateway key, plus a model ID.
+
+The bridge listens only on `127.0.0.1`, accepts requests only from Bandy (the GitHub Pages site or the dev server on port 5173/5174), and stores nothing. Your provider and model choice is remembered; your **API key is kept in memory for the current tab only and never saved**. Your prompt goes to the provider you pick and may be billed by them. Generated sounds are synth presets (never audio), and every field is validated and clamped before it reaches the audio engine.
 
 ## Keyboard shortcuts
 
@@ -67,6 +70,7 @@ In the Keyboard tab, **musical typing** maps `A W S E D F T G Y H U J K` to pian
 ```
 index.html            app shell
 css/styles.css        theme (dark + light)
+css/polish.css        depth, focus states, motion, AI Assist styling
 js/main.js            bootstrap, layout, shortcuts
 js/state.js           project model, selection, undo/redo, region editing
 js/storage.js, zip.js IndexedDB persistence, .bandy (zip) import/export

@@ -311,7 +311,10 @@ class Engine {
   async previewNote(trackId, note, ms = 280, vel = 100) { await this.noteOn(trackId, note, vel); setTimeout(() => this.noteOff(trackId, note), ms); }
 
   async auditionLoop(notes, { inst, kit, bars, loopLen }) {
-    await this.init(); this.stopAudition();
+    this.stopAudition();
+    const request = this.auditionRequest;
+    await this.init();
+    if (request !== this.auditionRequest) return;
     const ctx = this.ctx, out = ctx.createGain(); out.gain.value = 0.9; out.connect(this.graph.masterIn);
     const fake = { type: inst ? 'synth' : 'drums', inst, kit };
     const spb = 60 / S.project.bpm, len = loopLen * spb;
@@ -326,6 +329,7 @@ class Engine {
     emit('audition', true);
   }
   stopAudition() {
+    this.auditionRequest = (this.auditionRequest || 0) + 1;
     if (this.auditionTimer) { clearInterval(this.auditionTimer); this.auditionTimer = null; const o = this.auditionOut; o.gain.setTargetAtTime(0, this.ctx.currentTime, 0.02); setTimeout(() => o.disconnect(), 400); emit('audition', false); }
   }
   async auditionBuffer(buf) { await this.init(); this.stopAudition(); const s = this.ctx.createBufferSource(); s.buffer = buf; s.connect(this.graph.masterIn); s.start(); }

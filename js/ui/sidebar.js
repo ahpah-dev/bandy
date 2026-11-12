@@ -19,7 +19,7 @@ export function initSidebar(root) {
   on('project', (d) => { if (d?.full) render(); else if (S.ui.sideTab === 'instruments') markActive(); });
   on('selection', () => { if (S.ui.sideTab === 'fx' || S.ui.sideTab === 'instruments') render(); });
   on('layout', render); on('load', render);
-  on('audition', (on_) => { if (!on_) { playingLoop = null; document.querySelectorAll('.loop-play.on').forEach((b) => b.classList.remove('on')); } });
+  on('audition', (on_) => { if (!on_) clearLoopPreview(); });
   render();
 }
 let softTimer;
@@ -36,6 +36,10 @@ function render() {
 }
 
 // ---------------- Loops ----------------
+function clearLoopPreview() {
+  playingLoop = null;
+  document.querySelectorAll('.loop-play.on').forEach((b) => { b.classList.remove('on'); b.title = 'Preview'; b.setAttribute('aria-label', 'Preview loop'); b.setAttribute('aria-pressed', 'false'); });
+}
 function renderLoops() {
   const search = h('input', { class: 'search', placeholder: 'Search loops…', value: loopFilter.q, oninput: (e) => { loopFilter.q = e.target.value; list(); } });
   const chips = h('div', { class: 'chips' }, ['All', ...LOOP_TYPES].map((t) => h('button', { class: 'chip' + (loopFilter.type === t ? ' on' : ''), onclick: () => { loopFilter.type = t; render(); } }, t)));
@@ -47,10 +51,13 @@ function renderLoops() {
     const items = LOOPS.filter((l) => (loopFilter.type === 'All' || l.type === loopFilter.type) && (loopFilter.genre === 'All' || l.genre === loopFilter.genre) && (!q || (l.name + l.genre + l.mood + l.type).toLowerCase().includes(q)));
     if (!items.length) listEl.append(h('div', { class: 'muted pad' }, 'No loops match your search.'));
     for (const l of items) {
-      const btn = h('button', { class: 'loop-play' + (playingLoop === l.id ? ' on' : ''), title: 'Preview', html: icon('play', 14) + icon('stop', 14), onclick: async (e) => {
-        if (playingLoop === l.id) { engine.stopAudition(); return; }
-        playingLoop = l.id; document.querySelectorAll('.loop-play.on').forEach((b) => b.classList.remove('on')); e.currentTarget.classList.add('on');
-        await engine.auditionLoop(buildLoop(l, S.project.key), { inst: l.inst, kit: l.kit, loopLen: l.bars * 4 });
+      const active = playingLoop === l.id;
+      const btn = h('button', { class: 'loop-play' + (active ? ' on' : ''), title: active ? 'Stop preview' : 'Preview', 'aria-label': active ? 'Stop loop preview' : 'Preview loop', 'aria-pressed': String(active), html: icon('play', 14) + icon('stop', 14), onclick: async (e) => {
+        if (playingLoop === l.id) { engine.stopAudition(); clearLoopPreview(); return; }
+        const audition = engine.auditionLoop(buildLoop(l, S.project.key), { inst: l.inst, kit: l.kit, loopLen: l.bars * 4 });
+        clearLoopPreview();
+        playingLoop = l.id; e.currentTarget.classList.add('on'); e.currentTarget.title = 'Stop preview'; e.currentTarget.setAttribute('aria-label', 'Stop loop preview'); e.currentTarget.setAttribute('aria-pressed', 'true');
+        await audition;
       } });
       const row = h('div', { class: 'loop-row', draggable: 'true', ondragstart: (e) => { e.dataTransfer.setData('application/x-bandy-loop', l.id); e.dataTransfer.effectAllowed = 'copy'; } },
         btn, h('div', { class: 'loop-info' }, h('div', { class: 'loop-name' }, l.name), h('div', { class: 'loop-meta' }, [l.type, l.bars + ' bars', l.bpm + ' BPM', l.mood].join(' · '))),

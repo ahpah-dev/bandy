@@ -146,6 +146,7 @@ function createRow(t) {
 }
 function updateRow(r, t, force) {
   r.row.style.height = t.height + 'px';
+  r.lane.style.width = totalBeats() * S.ui.ppb + 'px';
   r.row.classList.toggle('selected', S.sel.track === t.id);
   r.row.style.setProperty('--tc', t.color);
   r.header.update(t);

@@ -225,6 +225,7 @@ export function mountPianoRoll(container, regionId) {
         drag(e, (ev) => { const d = bOf(ev.clientX - rc.left) - b0; sels.forEach((q, i) => { let nl = orig[i].l + d; nl = st.grid ? Math.max(st.grid, Math.round((orig[i].s + nl) / st.grid) * st.grid - orig[i].s) : Math.max(0.03, nl); q.l = nl; }); st.lastLen = n.l; changed(); st.dirty = true; });
         return;
       }
+      let lastPreviewPitch = n.p;
       drag(e, (ev) => {
         const dB = bOf(ev.clientX - rc.left) - b0, dR = rowAtY(ev.clientY - rc.top) - row0;
         if (!moved && Math.abs(ev.clientX - e.clientX) < 3 && Math.abs(ev.clientY - e.clientY) < 3) return;
@@ -233,7 +234,7 @@ export function mountPianoRoll(container, regionId) {
         let ds = st.grid ? Math.round((orig[0].s + dB) / st.grid) * st.grid - orig[0].s : dB;
         const minS = Math.min(...orig.map((q) => q.s)); if (minS + ds < 0) ds = -minS;
         sels.forEach((q, i) => { q.s = orig[i].s + ds; if (!drum) q.p = clamp(orig[i].p + dR, 0, 127); else q.p = pitchOfRow(rowOfPitch(orig[i].p) + dR); });
-        if (dR && sels.length === 1) engine.previewNote(f0.track.id, sels[0].p, 120, sels[0].v);
+        if (dR && sels.length === 1 && sels[0].p !== lastPreviewPitch) { engine.previewNote(f0.track.id, sels[0].p, 120, sels[0].v); lastPreviewPitch = sels[0].p; }
         changed(); st.dirty = true;
       });
       return;

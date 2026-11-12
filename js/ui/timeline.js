@@ -129,6 +129,7 @@ function doRender(force) {
     if (want !== r.row) els.rows.insertBefore(r.row, want || null);
     updateRow(r, t, force);
   });
+  layout(); // make sure lanes created above get their width right away
   els.empty.style.display = p.tracks.length ? 'none' : '';
   if (!p.tracks.length) { els.empty.innerHTML = ''; els.empty.append(h('div', { class: 'empty-card' }, h('div', { class: 'big-ic', html: icon('wave', 40) }), h('h3', null, 'Start something new'), h('p', null, 'Add a track, drag in an audio file, or browse loops in the Sounds panel.'), h('div', { class: 'row gap' }, h('button', { class: 'btn primary', onclick: () => openNewTrackDialog(), html: icon('plus', 16) + ' Add track' }), h('button', { class: 'btn', onclick: () => { S.ui.sideOpen = true; S.ui.sideTab = 'loops'; emit('layout'); }, html: icon('loops', 16) + ' Browse loops' })))); }
   drawRuler(); updateLoopShade(); updateSelection();
@@ -137,7 +138,7 @@ function doRender(force) {
 function createRow(t) {
   const row = h('div', { class: 'track-row', dataset: { id: t.id } });
   const header = createHeader(t);
-  const lane = h('div', { class: 'lane', dataset: { id: t.id } });
+  const lane = h('div', { class: 'lane', dataset: { id: t.id }, style: { width: totalBeats() * S.ui.ppb + 'px' } });
   const auto = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   auto.setAttribute('class', 'auto-svg');
   lane.append(auto);

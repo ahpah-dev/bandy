@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Song browser – Bandy</title>
+  <meta name="description" content="Listen to songs made with Bandy and upload your own. Free, open source, no ads." />
+  <meta name="theme-color" content="#08080b" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+  <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+  <div class="glow"></div>
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="Bandy home"><span id="logo"></span>Bandy</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="./">Home</a>
+        <a href="studio.html">Studio</a>
+        <a href="songs.html" aria-current="page">Songs</a>
+        <a href="https://github.com/ahpah-dev/bandy" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <span class="spacer"></span>
+      <div id="auth"></div>
+      <a class="btn primary sm" href="studio.html">Open Studio</a>
+      <button class="menu-btn" aria-label="Menu" id="menuBtn"></button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="page-hero">
+      <span class="eyebrow">Song browser</span>
+      <h1>Hear what the community is <span class="grad-text">making.</span></h1>
+      <p class="sub">Listen to songs, like your favourites, and upload your own. Made something in Bandy? Export it as WAV or MP3 and share it here.</p>
+    </div>
+
+    <div id="banner"></div>
+
+    <div class="toolbar">
+      <div class="search"><span id="searchIc"></span><input class="input" id="q" type="search" placeholder="Search songs or artists…" aria-label="Search songs" autocomplete="off" /></div>
+      <select class="select" id="sort" aria-label="Sort songs"><option value="new">Newest</option><option value="top">Most liked</option><option value="plays">Most played</option></select>
+      <button class="btn" id="mineBtn" aria-pressed="false">My uploads</button>
+      <button class="btn primary" id="uploadBtn"></button>
+    </div>
+    <div class="chips tight" id="genres" role="group" aria-label="Genre"></div>
+
+    <div class="songs-grid" id="grid" aria-live="polite"></div>
+    <div class="more"><button class="btn" id="moreBtn" hidden>Load more</button></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div class="brand"><span id="logo2"></span>Bandy</div>
+        <nav><a href="./">Home</a><a href="studio.html">Studio</a><a href="https://github.com/ahpah-dev/bandy" target="_blank" rel="noopener">Source code</a><a href="https://unlicense.org" target="_blank" rel="noopener">Unlicense</a></nav>
+      </div>
+      <p class="fine">Only upload music you made or have the right to share. Songs are public. Anyone can report a song, and reported songs are hidden pending review. Bandy is not affiliated with BandLab.</p>
+    </div>
+  </footer>
+  <script type="module" src="js/site/songs.js"></script>
+</body>
+</html>

@@ -15,10 +15,18 @@ Bandy is a static site made of plain ES modules — there is nothing to build.
 git clone https://github.com/ahpah-dev/bandy.git
 cd bandy
 python tools/serve.py        # or: npx serve .
-# open http://127.0.0.1:5173
+# landing page:  http://127.0.0.1:5173
+# the studio:     http://127.0.0.1:5173/studio.html
+# song browser:   http://127.0.0.1:5173/songs.html
 ```
 
 ES modules and AudioWorklets need `http://` (not `file://`), so use any static server. A modern Chromium, Firefox or Safari is required. Chrome/Edge give the best results (Web MIDI, low-latency audio).
+
+## Website
+
+- **Landing page** (`index.html`): a sleek product page with an animated studio preview, a playable keyboard that uses the real synth engine, and the latest songs.
+- **Studio** (`studio.html`): the app itself.
+- **Song browser** (`songs.html`): listen, like, report and **upload songs**. Public sharing needs a tiny backend; Bandy uses a free [Supabase](https://supabase.com) project (passwordless email sign-in, storage and a database with Row Level Security). Without it the page runs in a local demo mode. Setup guide: [docs/SONG_BROWSER.md](docs/SONG_BROWSER.md). Safeguards include a rights confirmation, type and 20 MB size limits, a daily upload limit, sign-in required to upload, and a report button that auto-hides songs after 3 reports.
 
 ## Features
 
@@ -70,14 +78,19 @@ In the Keyboard tab, **musical typing** maps `A W S E D F T G Y H U J K` to pian
 ## Project layout
 
 ```
-index.html            app shell
-css/styles.css        theme (dark + light)
+index.html            landing page
+studio.html           the studio app shell
+songs.html            Song browser page
+supabase/schema.sql   database + storage schema for shared uploads
+css/styles.css        studio theme (dark + light)
+css/site.css          landing page + Song browser styling
 css/polish.css        depth, focus states, motion, AI Assist styling
 js/main.js            bootstrap, layout, shortcuts
 js/state.js           project model, selection, undo/redo, region editing
 js/storage.js, zip.js IndexedDB persistence, .bandy (zip) import/export
 js/audio/             engine (graph + scheduler), synth, effects, loops, DSP,
                       recording, offline render / MIDI export, AudioWorklets
+js/site/              landing page and Song browser (backend adapters, player, upload)
 js/ui/                topbar, timeline, piano roll, mixer, sidebar, editors, dialogs,
                       designer (custom instruments: designer, import / export)
 tools/serve.py        no-cache static dev server

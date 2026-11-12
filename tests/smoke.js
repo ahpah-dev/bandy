@@ -5,6 +5,7 @@ import { LOOPS, buildLoop } from '../js/audio/loops.js';
 import { stretchBuffer, encodeWav } from '../js/audio/dsp.js';
 import { zip, unzip } from '../js/zip.js';
 import { swingDelay } from '../js/audio/engine.js';
+import { validateUpload, mimeOf } from '../js/site/backend.js';
 
 const out = document.getElementById('out');
 let fails = 0, total = 0;
@@ -83,6 +84,14 @@ for (const l of LOOPS) { const n = buildLoop(l, 3); log(n.length > 0 && n.every(
   log(Math.abs(swingDelay(0.5, { amount: 0.67, grid: 0.5 }) - 0.1675) < 1e-9, 'swing 67% on 1/8 grid');
   log(swingDelay(0.25, { amount: 0, grid: 0.25 }) === 0 && swingDelay(0.25, undefined) === 0, 'no swing when off or missing');
   log(swingDelay(0.37, sw) === 0, 'swing ignores notes far from the grid'); }
+
+{ const good = { title: 'Song', artist: 'Me', rights: true }, f = (name, size) => ({ name, size });
+  log(validateUpload(f('a.wav', 5000), good) === '', 'upload validation accepts a normal WAV');
+  log(mimeOf(f('x.MP3', 1)) === 'audio/mpeg' && mimeOf(f('x.exe', 1)) === '', 'upload mime lookup by extension');
+  log(/Unsupported/.test(validateUpload(f('a.txt', 5000), good)), 'upload validation rejects non-audio files');
+  log(/limit/.test(validateUpload(f('a.wav', 25 * 1024 * 1024), good)), 'upload validation enforces the size limit');
+  log(/rights/.test(validateUpload(f('a.wav', 5000), { ...good, rights: false })), 'upload validation requires rights confirmation');
+  log(/title/.test(validateUpload(f('a.wav', 5000), { ...good, title: ' ' })) && /artist/.test(validateUpload(f('a.wav', 5000), { ...good, artist: '' })), 'upload validation requires title and artist'); }
 
 out.innerHTML += `\n\n<b class="${fails ? 'bad' : 'ok'}">${total - fails}/${total} passed</b>`;
 document.title = fails ? 'FAIL' : 'PASS';

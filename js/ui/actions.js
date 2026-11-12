@@ -105,7 +105,8 @@ export function openExportDialog() {
     h('label', null, h('span', null, 'Sample rate'), sel('sr', [['44100', '44.1 kHz'], ['48000', '48 kHz']])),
     h('label', null, h('span', null, 'Range'), sel('range', [['all', 'Whole project'], ...(hasLoop ? [['loop', 'Loop region only']] : [])])),
     h('label', { class: 'chk-row' }, h('input', { type: 'checkbox', onchange: (e) => (state.normalize = e.target.checked) }), h('span', null, 'Normalise to −0.2 dBFS')),
-    bar, status);
+    bar, status,
+    h('p', { class: 'muted small' }, 'Made something great? Share it in the ', h('a', { href: 'songs.html', target: '_blank', rel: 'noopener', style: { color: 'var(--accent2)' } }, 'Song browser'), '.'));
   const m = modal('Export', body, { width: 460, actions: [{ label: 'Cancel' }, { label: 'Export', primary: true, keepOpen: true, action: async (close) => {
     const name = (p.name || 'project').replace(/[\\/:*?"<>|]/g, '_');
     try {

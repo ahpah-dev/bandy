@@ -1,20 +1,197 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bandy – free open-source music studio</title>
-  <meta name="description" content="Bandy is a free, open-source, browser-based music studio: multitrack recording, MIDI editing, synths, drums, effects, loops and mixing." />
-  <meta name="theme-color" content="#0e0e10" />
+  <title>Bandy – free, open-source music studio in your browser</title>
+  <meta name="description" content="Bandy is a free, open-source music studio that runs in your browser. Record, sequence, mix and share – 120 instruments, effects, loops and a community song browser. No sign-up." />
+  <meta name="theme-color" content="#08080b" />
+  <meta property="og:title" content="Bandy – make music in your browser" />
+  <meta property="og:description" content="A full music studio: multitrack recording, MIDI, 120 instruments, effects and loops. Free and open source." />
+  <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="css/polish.css" />
+  <link rel="stylesheet" href="css/site.css" />
 </head>
 <body>
-  <div id="app">
-    <div class="boot"><div class="boot-logo"></div><p>Loading Bandy…</p></div>
-    <noscript>Bandy needs JavaScript and the Web Audio API.</noscript>
-  </div>
-  <script type="module" src="js/main.js"></script>
+  <div class="glow"></div>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="Bandy home"><span id="logo"></span>Bandy</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#try">Try it</a>
+        <a href="#songs">Songs</a>
+        <a href="#open-source">Open source</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <span class="spacer"></span>
+      <a class="btn ghost sm" href="https://github.com/ahpah-dev/bandy" target="_blank" rel="noopener" id="ghBtn"></a>
+      <a class="btn primary sm" href="studio.html">Open Studio</a>
+      <button class="menu-btn" aria-label="Menu" id="menuBtn"></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="grid-bg"></div>
+      <div class="wrap">
+        <span class="badge rv"><i>FREE</i> Open source · No sign-up · Runs in your browser</span>
+        <h1 class="rv" style="--d:.05s">Make music <span class="grad-text">anywhere.</span></h1>
+        <p class="lead rv" style="--d:.1s">A complete studio in a browser tab: record, sequence, mix and master with 120 instruments, 16 effects and a library of loops. Free forever, nothing to install.</p>
+        <div class="cta-row rv" style="--d:.15s">
+          <a class="btn primary lg" href="studio.html" id="ctaStudio"></a>
+          <a class="btn lg" href="songs.html" id="ctaSongs"></a>
+        </div>
+        <div class="trust rv" style="--d:.2s">
+          <span id="t1"></span><span id="t2"></span><span id="t3"></span>
+        </div>
+
+        <div class="mock-wrap rv" style="--d:.25s" aria-hidden="true">
+          <div class="mock">
+            <div class="mock-bar">
+              <div class="dots"><i></i><i></i><i></i></div>
+              <div class="mock-transport"><span class="play" id="mPlay"></span><span class="rec"></span><span>0:08.4</span><span style="color:var(--faint);font-weight:600">112 BPM</span></div>
+              <span style="width:50px"></span>
+            </div>
+            <div class="mock-body">
+              <div class="mock-heads" id="mHeads"></div>
+              <div class="mock-lanes" id="mLanes"><div class="playhead"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section>
+      <div class="wrap">
+        <div class="stats rv">
+          <div class="stat"><b>120</b><span>instruments</span></div>
+          <div class="stat"><b>15</b><span>drum kits</span></div>
+          <div class="stat"><b>110+</b><span>loops &amp; beats</span></div>
+          <div class="stat"><b>16</b><span>effects</span></div>
+          <div class="stat"><b>$0</b><span>forever</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="sec-head center rv"><span class="eyebrow">Features</span><h2>Everything you need to finish a song.</h2><p class="sub">Pro-style tools, none of the friction. Open the tab and start playing.</p></div>
+        <div class="features">
+          <article class="feature wide rv"><div class="f-ic" data-ic="layers"></div><h3>A real multitrack timeline</h3><p>Drag, trim, split, loop and fade regions. Automate volume and pan, set swing, tempo and key, and undo anything.</p></article>
+          <article class="feature rv" style="--d:.05s"><div class="f-ic" data-ic="mic"></div><h3>Record anything</h3><p>Mic, guitar or bass with count-in, monitoring and latency compensation. Play MIDI from your keyboard.</p></article>
+          <article class="feature rv" style="--d:.1s"><div class="f-ic" data-ic="piano"></div><h3>120 instruments</h3><p>Pianos, pads, brass, strings, bass and leads – all synthesised in real time.</p></article>
+          <article class="feature rv"><div class="f-ic" data-ic="drum"></div><h3>Beats &amp; sampler</h3><p>15 drum kits, a 16-pad sampler and a grid for programming grooves.</p></article>
+          <article class="feature wide rv" style="--d:.05s"><div class="f-ic" data-ic="sparkle"></div><h3>Design your own sounds – with AI</h3><p>Build custom instruments with a full synth designer, or describe one in words and let AI Assist draft it. Bring any OpenAI-compatible key, or run models locally.</p></article>
+          <article class="feature rv" style="--d:.1s"><div class="f-ic" data-ic="loops"></div><h3>Loops that fit</h3><p>110+ original loops that follow your key and tempo.</p></article>
+          <article class="feature rv"><div class="f-ic" data-ic="sliders"></div><h3>Mix &amp; master</h3><p>Channel strips, EQ, compression, reverb, Auto-Pitch and one-click mastering.</p></article>
+          <article class="feature rv" style="--d:.05s"><div class="f-ic" data-ic="download"></div><h3>Export anywhere</h3><p>WAV, per-track stems and MIDI, plus portable project files.</p></article>
+          <article class="feature rv" style="--d:.1s"><div class="f-ic" data-ic="shield"></div><h3>Private by default</h3><p>Projects live in your browser. No account, no tracking, no ads.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Try a sound -->
+    <section class="section" id="try">
+      <div class="wrap">
+        <div class="play-card rv">
+          <div>
+            <span class="eyebrow">Try it now</span>
+            <h2>Play a real Bandy instrument.</h2>
+            <p class="sub">This keyboard runs the same synth engine as the studio. Pick a sound and play with your mouse, touch or computer keyboard.</p>
+            <div class="chips" id="insts" role="group" aria-label="Instrument"></div>
+            <p class="hint">Tip: use <b>A W S E D F T G Y H U J K</b> on your keyboard.</p>
+          </div>
+          <div class="kbd-stage">
+            <canvas id="viz" aria-hidden="true"></canvas>
+            <div class="piano" id="piano" role="group" aria-label="Piano keyboard"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Songs -->
+    <section class="section" id="songs">
+      <div class="wrap">
+        <div class="sec-head rv" style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+          <div><span class="eyebrow">Song browser</span><h2>Hear what people are making.</h2><p class="sub">Listen, like and share. Upload your own songs for the community to hear.</p></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="songs.html">Browse all songs</a><a class="btn primary" href="songs.html" id="upLink"></a></div>
+        </div>
+        <div class="songs-grid rv" id="teaser"></div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section">
+      <div class="wrap">
+        <div class="sec-head center rv"><span class="eyebrow">How it works</span><h2>From idea to song in minutes.</h2></div>
+        <div class="steps">
+          <div class="step rv"><h3>Open the studio</h3><p>No download, no account. Pick a template or start from a blank project.</p></div>
+          <div class="step rv" style="--d:.08s"><h3>Make something</h3><p>Drop in loops, play instruments, record your voice, then shape it with effects.</p></div>
+          <div class="step rv" style="--d:.16s"><h3>Export &amp; share</h3><p>Download WAV or stems, or upload your finished song to the Song browser.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open source -->
+    <section class="section" id="open-source">
+      <div class="wrap">
+        <div class="os-card rv">
+          <div>
+            <span class="eyebrow">Open source</span>
+            <h2>Public domain, for real.</h2>
+            <p class="sub">Bandy is released under the Unlicense. Read it, fork it, ship it, sell it – no strings. It’s plain JavaScript with no build step and no dependencies.</p>
+            <div class="cta-row" style="justify-content:flex-start;margin-top:26px"><a class="btn primary" href="https://github.com/ahpah-dev/bandy" target="_blank" rel="noopener" id="ghBig"></a><a class="btn" href="https://github.com/ahpah-dev/bandy/releases" target="_blank" rel="noopener">Download a release</a></div>
+          </div>
+<pre><span class="c"># run it locally</span>
+git clone https://github.com/ahpah-dev/bandy.git
+cd bandy
+python tools/serve.py
+
+<span class="c"># then open</span>
+http://127.0.0.1:5173</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq">
+      <div class="wrap">
+        <div class="sec-head center rv"><span class="eyebrow">FAQ</span><h2>Good questions.</h2></div>
+        <div class="faq rv">
+          <details><summary>Is Bandy really free?</summary><p>Yes. There are no paid tiers, ads or limits. The code is public domain, so it will stay free.</p></details>
+          <details><summary>Do I need an account?</summary><p>Not to make music. Your projects are saved in your browser automatically. An account (just an email link, no password) is only needed to upload songs to the Song browser.</p></details>
+          <details><summary>Where are my projects stored?</summary><p>In your browser’s own storage on your device – nothing is sent anywhere. Export a <code>.bandy</code> file to back up or move a project.</p></details>
+          <details><summary>Can I record with a microphone or MIDI keyboard?</summary><p>Yes. Allow microphone access to record audio, and plug in a MIDI keyboard to play instruments (Chrome and Edge support Web MIDI).</p></details>
+          <details><summary>How do uploads work?</summary><p>Export your song as WAV (or any MP3/OGG/M4A/FLAC file you have), then upload it in the Song browser. Songs are public, limited to 20 MB, and you must own the rights. Anyone can report a song and reported songs are hidden for review.</p></details>
+          <details><summary>Is Bandy affiliated with BandLab?</summary><p>No. Bandy is an independent project inspired by browser-based studios. It contains none of their code, assets or sounds.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="section" style="padding-top:20px">
+      <div class="wrap" style="text-align:center">
+        <div class="sec-head center rv"><h2>Ready to make something?</h2><p class="sub">Open the studio and start with a loop in under ten seconds.</p></div>
+        <a class="btn primary lg rv" href="studio.html" id="ctaFinal"></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div class="brand"><span id="logo2"></span>Bandy</div>
+        <nav><a href="studio.html">Studio</a><a href="songs.html">Songs</a><a href="https://github.com/ahpah-dev/bandy" target="_blank" rel="noopener">Source code</a><a href="https://github.com/ahpah-dev/bandy/releases" target="_blank" rel="noopener">Releases</a><a href="https://unlicense.org" target="_blank" rel="noopener">Unlicense</a></nav>
+      </div>
+      <p class="fine">Bandy is free and open source (Unlicense). It is an independent project inspired by browser-based studios and is not affiliated with or endorsed by BandLab. All built-in sounds and loops are generated by original code.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/site/landing.js"></script>
 </body>
 </html>

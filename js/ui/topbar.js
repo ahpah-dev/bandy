@@ -102,6 +102,8 @@ function fileMenu(anchor) {
     { label: 'Download project file (.bandy)', action: exportProjectAction },
     { sep: true },
     { label: 'Lyrics & notes', action: () => { S.ui.sideOpen = true; S.ui.sideTab = 'notes'; emit('layout'); } },
+    { label: 'Song browser (share your music)', action: () => window.open('songs.html', '_blank', 'noopener') },
+    { label: 'Bandy home', action: () => { location.href = './'; } },
     { label: 'Tuner', action: openTuner },
     { label: 'Settings', action: openSettings },
     { label: 'Keyboard shortcuts', shortcut: '?', action: openShortcuts },

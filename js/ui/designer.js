@@ -200,6 +200,47 @@ export function openInstrumentDesigner(baseId = null) {
   }
   const playBtn = h('button', { class: 'btn small', html: icon('play', 14) + ' Play', title: 'Play a note', onclick: () => playNote(previewNote(), 900) });
 
+  // Credentials stay in this open designer only; generated settings are applied only after validation.
+  const aiPrompt = h('textarea', { class: 'text-input ai-prompt', placeholder: 'Describe a sound, e.g. a warm, slow analog pad', rows: 2, maxlength: 2000 });
+  const aiKey = h('input', { class: 'text-input', type: 'password', autocomplete: 'off', placeholder: 'OpenAI API key' });
+  const aiModel = h('input', { class: 'text-input', value: 'gpt-4.1-mini', placeholder: 'Model ID' });
+  const aiProvider = h('select', { class: 'select', onchange: (e) => {
+    const kilo = e.target.value === 'kilo';
+    aiModel.value = kilo ? 'cohere/north-mini-code:free' : 'gpt-4.1-mini';
+    aiKey.value = ''; aiKey.placeholder = kilo ? 'Kilo Gateway API key' : 'OpenAI API key';
+  } }, h('option', { value: 'openai', selected: true }, 'Bring your own key (OpenAI)'), h('option', { value: 'kilo' }, 'Kilo Gateway'));
+  const aiStatus = h('p', { class: 'muted small', role: 'status' });
+  let aiAbort = null;
+  const generate = h('button', { class: 'btn small', onclick: async () => {
+    const prompt = aiPrompt.value.trim(), model = aiModel.value.trim();
+    if (!prompt || !model || !aiKey.value.trim()) { aiStatus.textContent = 'Enter a sound description, model ID and API key.'; return; }
+    generate.disabled = true; aiStatus.textContent = 'Generating instrument…'; aiAbort = new AbortController();
+    try {
+      const response = await fetch('http://127.0.0.1:5175/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: aiAbort.signal, body: JSON.stringify({ provider: aiProvider.value, key: aiKey.value.trim(), model, messages: [
+        { role: 'system', content: 'Design a playable synthesizer preset. Return only a JSON object, no markdown. Schema: {"name":string,"type":"synth","osc":[[wave,detuneCents,gain,octave]],"env":[attackSeconds,decaySeconds,sustain,releaseSeconds],"gain":number,"filter":{"type":"lowpass|highpass|bandpass|notch","freq":Hz,"q":number,"track":number,"amt":Hz,"decay":seconds},"vib":[rateHz,depthCents],"trem":[rateHz,depth],"drive":number,"glide":seconds,"fm":{"ratio":number,"index":number,"decay":seconds,"end":number},"unison":{"voices":1-5,"spread":cents}}. Oscillator waves: sine, square, sawtooth, triangle. Use 1-4 oscillators, gains 0-1, octave -2 to 2, envelope times 0.001-8, sustain 0-1. Optional effects may be omitted. Never return sample instruments.' },
+        { role: 'user', content: prompt },
+      ] }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || result.error || `Request failed (${response.status}).`);
+      let content = result.choices?.[0]?.message?.content;
+      if (typeof content !== 'string') throw new Error('The model did not return an instrument. Try another model.');
+      content = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const raw = JSON.parse(content);
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.type === 'sample' || !Array.isArray(raw.osc) || !raw.osc.length) throw new Error('The model returned an invalid synth. Try again.');
+      const def = sanitizeInstrument({ ...raw, type: 'synth', cat: MY_CAT });
+      Object.assign(m, modelOf(def)); nameIn.value = m.name; catSel.value = MY_CAT; build(); touch();
+      aiStatus.textContent = 'Generated! Preview and adjust the sound, then save it.';
+    } catch (e) {
+      if (e.name !== 'AbortError') aiStatus.textContent = e instanceof SyntaxError ? 'The model returned invalid JSON. Try again or choose another model.' : (e.message === 'Failed to fetch' ? 'Could not reach the local AI bridge. Start it using the instructions below.' : e.message);
+    } finally { aiAbort = null; generate.disabled = false; }
+  } }, 'Generate instrument');
+  const aiPanel = h('details', { class: 'id-sec ai-assist' }, h('summary', null, 'AI Assist'),
+    h('p', { class: 'muted small' }, 'Describe a synth sound. Your prompt is sent to the selected provider; usage may incur charges.'),
+    aiPrompt, h('label', { class: 'id-field' }, h('span', null, 'Provider'), aiProvider), h('label', { class: 'id-field' }, h('span', null, 'Model ID'), aiModel),
+    h('label', { class: 'id-field' }, h('span', null, 'API key'), aiKey),
+    h('p', { class: 'muted small' }, 'For Kilo, ', h('a', { href: 'https://app.kilo.ai/', target: '_blank', rel: 'noopener noreferrer' }, 'sign in to Kilo'), ' and copy your Gateway API key from your profile. Configure provider keys or subscriptions in Kilo BYOK. Your key stays in this open designer and is not saved.'),
+    h('p', { class: 'muted small' }, 'Start the local bridge with ', h('code', null, 'python tools/ai_bridge.py'), ' and keep it running. See the README for setup.'), generate, aiStatus);
+
   // ---- save / delete / export ----
   function saveDesign(close, asCopy = false) {
     const id = asCopy || !editingId ? uid('u_') : editingId;
@@ -228,6 +269,7 @@ export function openInstrumentDesigner(baseId = null) {
       h('label', { class: 'id-field' }, h('span', null, 'Category'), catSel),
       h('label', { class: 'id-field' }, h('span', null, 'Start from'), baseSel)),
     h('div', { class: 'id-modes' }, modeBtns),
+    aiPanel,
     panel,
     h('div', { class: 'id-preview' },
       h('div', { class: 'id-prev-h' }, h('span', { class: 'id-prev-t' }, 'Preview'), h('span', { class: 'muted small' }, 'Hold a key to play. Each change is heard on the next note.'), h('span', { class: 'spacer' }), playBtn),
@@ -235,7 +277,7 @@ export function openInstrumentDesigner(baseId = null) {
   build();
   modal(editingId ? 'Edit instrument' : 'New instrument', body, {
     width: 760, cls: 'designer-modal', actions,
-    onClose: () => { for (const n of [...held.keys()]) stopVoice(n); down.clear(); clearTimeout(previewTimer); },
+    onClose: () => { aiAbort?.abort(); aiKey.value = ''; for (const n of [...held.keys()]) stopVoice(n); down.clear(); clearTimeout(previewTimer); },
   });
 }
 

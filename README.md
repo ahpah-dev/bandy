@@ -51,6 +51,12 @@ Click **+ New instrument** in the Sounds tab (or the pencil on a custom sound) t
 - **Sample** instruments are made from an audio file you load in the designer. They live in the current project (the audio is saved with it) and play pitched from the root note, optionally looping.
 - **Import / Export** use `.bandy-instrument.json` files. Export a sound from the designer; import one (or an array of them) with **Import…** in the Sounds tab. Imported JSON is validated and clamped, so out-of-range values cannot break audio.
 
+### AI Assist
+
+Open **AI Assist** in the instrument designer to generate editable synth settings from a description. Run `python tools/ai_bridge.py` from your Bandy checkout and leave it running while using the feature. The bridge listens only on this computer and forwards requests to the selected provider; it does not save your key or prompts. It supports the GitHub Pages site and the local development server on port 5173 or 5174.
+
+By default, enter an OpenAI API key and model ID. Alternatively, select Kilo Gateway, sign in at [Kilo](https://app.kilo.ai/), and copy your Gateway API key from your profile. To use your own provider key or a supported subscription through Kilo, configure it in Kilo's BYOK settings and choose a matching model ID. Keys are held only while the designer is open. Kilo does not document an external-app OAuth sign-in for its Gateway, so Bandy uses its documented API-key authentication. Your prompt goes to the selected provider and model, and usage may be billed. Generated sounds are synth presets, not audio samples; review and save them in the designer.
+
 ## Keyboard shortcuts
 
 `Space` play/pause · `R` record · `L` loop · `K` metronome · `S` split at playhead · `Ctrl+Z / Shift+Z` undo/redo · `Ctrl+C / X / V / D` copy / cut / paste / duplicate · `Del` delete · `T` add track · `M` mute · `A` arm · `F` zoom to fit · `+ / −` zoom · `Enter` open editor · `?` full list.

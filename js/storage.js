@@ -12,14 +12,18 @@ function db() {
     rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
   }));
 }
+// Audio buffer ids a project needs: regions, sampler pads and sample instruments.
+const usedBufferIds = (p) => new Set([
+  ...p.tracks.flatMap((t) => [...t.regions.filter((r) => r.type === 'audio').map((r) => r.bufferId), ...(t.pads || []).map((x) => x.bufferId).filter(Boolean)]),
+  ...Object.values(p.customInstruments || {}).filter((d) => d?.type === 'sample' && d.bufferId).map((d) => d.bufferId),
+]);
 const tx = async (store, mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction(store, mode); const r = fn(t.objectStore(store)); t.oncomplete = () => res(r.result); t.onerror = () => rej(t.error); }); };
 
 export async function saveProject() {
   const p = S.project;
   const meta = { id: p.id, name: p.name, updated: Date.now(), bpm: p.bpm, tracks: p.tracks.length, json: JSON.stringify(p) };
   await tx('projects', 'readwrite', (s) => s.put(meta));
-  const used = new Set(p.tracks.flatMap((t) => [...t.regions.filter((r) => r.type === 'audio').map((r) => r.bufferId), ...(t.pads || []).map((x) => x.bufferId).filter(Boolean)]));
-  for (const id of used) {
+  for (const id of usedBufferIds(p)) {
     const key = p.id + ':' + id;
     const exists = await tx('audio', 'readonly', (s) => s.count(key));
     if (exists) continue;
@@ -42,8 +46,7 @@ export async function loadProjectData(id, ctx) {
   const meta = await tx('projects', 'readonly', (s) => s.get(id)); if (!meta) throw new Error('Project not found');
   const p = JSON.parse(meta.json);
   S.buffers.clear();
-  const ids = new Set(p.tracks.flatMap((t) => [...t.regions.filter((r) => r.type === 'audio').map((r) => r.bufferId), ...(t.pads || []).map((x) => x.bufferId).filter(Boolean)]));
-  for (const bid of ids) {
+  for (const bid of usedBufferIds(p)) {
     const rec = await tx('audio', 'readonly', (s) => s.get(p.id + ':' + bid)); if (!rec) continue;
     const b = ctx.createBuffer(rec.channels.length, rec.channels[0].byteLength / 4, rec.sr);
     rec.channels.forEach((ab, c) => b.copyToChannel(new Float32Array(ab), c));
@@ -54,8 +57,9 @@ export async function loadProjectData(id, ctx) {
 
 export async function exportProjectFile(p = S.project) {
   const files = [{ name: 'project.json', data: new TextEncoder().encode(JSON.stringify(p)) }];
+  const used = usedBufferIds(p);
   for (const [id, b] of S.buffers) {
-    const used = JSON.stringify(p).includes(id); if (!used) continue;
+    if (!used.has(id)) continue;
     files.push({ name: `audio/${id}.wav`, data: new Uint8Array(await encodeWav(b, 32).arrayBuffer()) });
   }
   return new Blob([zip(files)], { type: 'application/zip' });

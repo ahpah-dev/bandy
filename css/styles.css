@@ -229,6 +229,36 @@ input, select, textarea { font: inherit; color: inherit; }
 #toasts { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 2000; align-items: center; pointer-events: none; }
 .toast { background: var(--panel4); border: 1px solid var(--line2); border-radius: 12px; padding: 10px 18px; box-shadow: var(--shadow); font-weight: 600; animation: pop .15s; } .toast.error { background: #4a1612; border-color: var(--accent); } .toast.warn { border-color: var(--warn); } .toast.out { opacity: 0; transition: opacity .35s; }
 
+/* ---- custom instruments: Sounds panel, mixer label and designer ---- */
+.inst-actions { margin-top: 2px; } .empty-hint { margin: 0 2px; line-height: 1.4; }
+.inst-btn.custom { position: relative; cursor: pointer; }
+.inst-tag { font-style: normal; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--accent2); margin-left: 6px; }
+.inst-btn .inst-acts { position: absolute; top: 4px; right: 4px; display: none; gap: 2px; background: var(--panel4); border-radius: 8px; padding: 1px; }
+.inst-btn.custom:hover .inst-acts, .inst-btn.custom:focus-within .inst-acts { display: flex; }
+.inst-btn .inst-acts .icon-btn.small { width: 22px; height: 22px; }
+.st-inst { font-size: 10px; color: var(--text-dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.designer { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.id-head { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.id-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-dim); min-width: 150px; } .id-field.grow { flex: 1; min-width: 200px; } .id-field .text-input, .id-field .select { width: 100%; }
+.id-base { max-width: 240px; }
+.id-modes { display: flex; gap: 6px; }
+.id-panel { display: flex; flex-direction: column; gap: 10px; min-height: 240px; }
+.id-sec { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.id-sec h4 { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-dim); }
+.id-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px 4px; justify-items: center; }
+.id-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.id-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.id-oscs { display: flex; flex-direction: column; gap: 6px; }
+.id-osc { display: grid; grid-template-columns: 96px 120px repeat(3, 1fr); align-items: center; gap: 6px; } .id-osc.off { opacity: .45; } .id-osc .knob { justify-self: center; }
+.id-num { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--text-dim); } .id-num .num-input { width: 96px; }
+.id-preview { display: flex; flex-direction: column; gap: 8px; }
+.id-prev-h { display: flex; align-items: center; gap: 10px; } .id-prev-t { font-weight: 700; font-size: 13px; }
+.id-keys { position: relative; height: 96px; user-select: none; touch-action: none; border-radius: 8px; overflow: hidden; background: #161616; }
+.id-key { position: absolute; top: 0; bottom: 0; box-sizing: border-box; cursor: pointer; }
+.id-key.white { background: #f4f2ee; border: 1px solid #8a8a8a; border-radius: 0 0 6px 6px; color: #666; font-size: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; }
+.id-key.white.down { background: #cfd8ff; }
+.id-key.black { height: 60%; background: #111; border-radius: 0 0 4px 4px; z-index: 2; } .id-key.black.down { background: var(--accent); }
+
 @media (max-width: 1280px) { .brand, .proj-box .save-state, .tbtn.count { display: none; } .proj-name-input { width: 130px; } #sidebar { width: 310px; } }
 @media (max-width: 1100px) { .proj-box, .meta-pills .pill:last-child { display: none; } }
 @media (max-width: 900px) { #sidebar { position: fixed; right: 0; top: 58px; bottom: 0; z-index: 60; box-shadow: var(--shadow); } .td-sub, .count, .meta-pills .pill:nth-child(2) { display: none; } .export-btn span { display: none; } }

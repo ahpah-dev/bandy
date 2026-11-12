@@ -1,5 +1,6 @@
 // Built-in instruments: polyphonic synth voices, synthesised drum kits and metronome.
-import { midiToFreq } from '../util.js';
+// Custom instruments (registry below) reuse the same synth voice; sample instruments play a decoded buffer.
+import { midiToFreq, clamp, uid } from '../util.js';
 
 // osc layers: [type, detuneCents, gain, octaveOffset]
 export const INSTRUMENTS = [
@@ -136,6 +137,81 @@ export const INSTRUMENTS = [
 ];
 export const INST_BY_ID = Object.fromEntries(INSTRUMENTS.map((i) => [i.id, i]));
 
+// ---- Custom instrument registry ----
+// Custom definitions (ids start with 'u_') are validated by sanitizeInstrument() before they reach the audio graph.
+export const OSC_TYPES = ['sine', 'square', 'sawtooth', 'triangle'];
+export const FILTER_TYPES = ['lowpass', 'highpass', 'bandpass', 'notch'];
+export const NOISE_TYPES = ['bp', 'hp', 'lp'];
+const CUSTOM = new Map();
+const CUSTOM_ID = /^u_[\w-]{3,48}$/;
+const numOr = (v, lo, hi, d) => (typeof v === 'number' && Number.isFinite(v) ? clamp(v, lo, hi) : d);
+const pairOr = (v, lo1, hi1, lo2, hi2) => (Array.isArray(v) && Number.isFinite(v[0]) && Number.isFinite(v[1]) ? [clamp(v[0], lo1, hi1), clamp(v[1], lo2, hi2)] : null);
+export const isBuiltinInstrument = (id) => Object.prototype.hasOwnProperty.call(INST_BY_ID, id);
+
+// Returns a safe copy of an instrument definition: every number is finite and in range (NaN falls back to the default),
+// unknown enum values fall back to sensible types, and at most 4 oscillator layers are kept.
+// Returns null when the input is not an object at all.
+export function sanitizeInstrument(def) {
+  if (!def || typeof def !== 'object' || Array.isArray(def)) return null;
+  const id = typeof def.id === 'string' && CUSTOM_ID.test(def.id) ? def.id : uid('u_');
+  const name = typeof def.name === 'string' && def.name.trim() ? def.name.trim().slice(0, 60) : 'Custom sound';
+  const cat = typeof def.cat === 'string' && def.cat.trim() ? def.cat.trim().slice(0, 24) : 'My instruments';
+  if (def.type === 'sample') {
+    const out = {
+      id, name, cat, type: 'sample', bufferId: typeof def.bufferId === 'string' ? def.bufferId.slice(0, 80) : '',
+      rootNote: Math.round(numOr(def.rootNote, 0, 127, 60)), attack: numOr(def.attack, 0, 8, 0.005), release: numOr(def.release, 0, 8, 0.3), gain: numOr(def.gain, 0, 1.5, 1),
+    };
+    if (Number.isFinite(def.loopStart) && Number.isFinite(def.loopEnd) && def.loopEnd > def.loopStart) {
+      out.loopStart = clamp(def.loopStart, 0, 3600); out.loopEnd = clamp(def.loopEnd, out.loopStart + 0.001, 3600);
+    }
+    return out;
+  }
+  const osc = (Array.isArray(def.osc) ? def.osc.slice(0, 4) : [])
+    .filter((ly) => Array.isArray(ly))
+    .map((ly) => [OSC_TYPES.includes(ly[0]) ? ly[0] : 'sine', numOr(ly[1], -100, 100, 0), numOr(ly[2], 0, 1.5, 0.5), numOr(ly[3], -6, 6, 0)]);
+  if (!osc.length) osc.push(['sine', 0, 0.8, 0]);
+  const e = Array.isArray(def.env) ? def.env : [];
+  const out = {
+    id, name, cat, type: 'synth', osc,
+    env: [numOr(e[0], 0, 8, 0.01), numOr(e[1], 0, 8, 0.3), numOr(e[2], 0, 1, 0.8), numOr(e[3], 0, 8, 0.3)],
+    gain: numOr(def.gain, 0, 1.5, 0.8),
+  };
+  const f = def.filter;
+  if (f && typeof f === 'object') out.filter = {
+    type: FILTER_TYPES.includes(f.type) ? f.type : 'lowpass', freq: numOr(f.freq, 40, 18000, 2000), q: numOr(f.q, 0.1, 20, 0.7),
+    track: numOr(f.track, 0, 2, 0), amt: numOr(f.amt, 0, 18000, 0), decay: numOr(f.decay, 0.01, 8, 0.2),
+  };
+  const vib = pairOr(def.vib, 0, 30, 0, 100); if (vib && vib[1] > 0) out.vib = vib;
+  const trem = pairOr(def.trem, 0, 30, 0, 1); if (trem && trem[1] > 0) out.trem = trem;
+  const drive = numOr(def.drive, 0, 10, 0); if (drive > 0) out.drive = drive;
+  const glide = numOr(def.glide, 0, 2, 0); if (glide > 0) out.glide = glide;
+  const breath = numOr(def.breath, 0, 0.2, 0); if (breath > 0) out.breath = breath;
+  const pe = pairOr(def.pitchEnv, -24, 24, 0, 4); if (pe && pe[0] !== 0) out.pitchEnv = pe;
+  const lfo = pairOr(def.lfoFilter, 0, 30, 0, 8000); if (lfo && lfo[1] > 0) out.lfoFilter = lfo;
+  if (def.fm && typeof def.fm === 'object') {
+    const fm = { ratio: numOr(def.fm.ratio, 0.05, 32, 1), index: numOr(def.fm.index, 0, 10, 0), decay: numOr(def.fm.decay, 0.01, 8, 0.5), end: numOr(def.fm.end, 0, 1, 0.1) };
+    if (fm.index > 0) out.fm = fm;
+  }
+  if (def.attackNoise && typeof def.attackNoise === 'object') {
+    const an = def.attackNoise, g = numOr(an.gain, 0, 1.5, 0);
+    if (g > 0) out.attackNoise = { gain: g, decay: numOr(an.decay, 0.001, 3, 0.03), type: NOISE_TYPES.includes(an.type) ? an.type : 'bp', freq: numOr(an.freq, 40, 18000, 2000), q: numOr(an.q, 0.1, 20, 1) };
+  }
+  if (def.unison && typeof def.unison === 'object') {
+    const voices = Math.round(numOr(def.unison.voices, 1, 5, 1));
+    if (voices > 1) out.unison = { voices, spread: numOr(def.unison.spread, 0, 50, 8), ...(OSC_TYPES.includes(def.unison.type) ? { type: def.unison.type } : {}) };
+  }
+  return out;
+}
+
+export function registerInstrument(def) { const clean = sanitizeInstrument(def); if (clean) CUSTOM.set(clean.id, clean); return clean; }
+export function unregisterInstrument(id) { CUSTOM.delete(id); }
+export function getCustomInstrument(id) { return CUSTOM.get(id) || null; }
+export function listCustomInstruments() { return [...CUSTOM.values()]; }
+// Replaces the whole custom set (used when the library or the open project changes). Defs must already be sanitized.
+export function setCustomInstruments(defs) { CUSTOM.clear(); for (const d of defs) if (d?.id) CUSTOM.set(d.id, d); }
+// Custom first, then built-ins, then Grand Piano for unknown ids (so a missing instrument never silences a track).
+export function getInstrument(id) { return CUSTOM.get(id) || (isBuiltinInstrument(id) ? INST_BY_ID[id] : INST_BY_ID.grand); }
+
 // ---- Drum kits ----
 export const DRUM_MAP = [
   { note: 36, name: 'Kick', key: 'kick' }, { note: 38, name: 'Snare', key: 'snare' }, { note: 39, name: 'Clap', key: 'clap' }, { note: 37, name: 'Rim', key: 'rim' },
@@ -222,7 +298,34 @@ function nearestKey(note) { let best = DRUM_MAP[0], bd = 99; for (const d of DRU
 //   lfoFilter:   [hz, depthHz]                  sine LFO on the filter cutoff (needs filter)
 //   attackNoise: { gain, decay, type, freq, q } one-shot filtered noise burst at note start (type: 'bp' | 'hp' | 'lp')
 //   unison:      { voices, spread, type }       duplicate osc layers of `type` (all if omitted) +/- spread cents; max 12 oscillators per note
-export function startVoice(ctx, out, inst, t, note, vel = 100) {
+// Sample instrument voice: plays `buffer` pitched from inst.rootNote, with attack/release gain and optional loop.
+// `buffer` is resolved by the caller (the project's audio buffers); a missing buffer gives a silent voice.
+export function startSampleVoice(ctx, out, inst, t, note, vel = 100, buffer = null) {
+  const peak = Math.pow(vel / 127, 1.15) * (inst.gain ?? 1), a = Math.max(0.001, inst.attack ?? 0.005), r = inst.release ?? 0.3;
+  const env = ctx.createGain(); env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(peak, t + a);
+  env.connect(out);
+  const src = buffer ? ctx.createBufferSource() : null;
+  if (src) {
+    src.buffer = buffer; src.playbackRate.value = Math.pow(2, (note - (inst.rootNote ?? 60)) / 12);
+    if (inst.loopStart != null && inst.loopEnd > inst.loopStart) { src.loop = true; src.loopStart = inst.loopStart; src.loopEnd = inst.loopEnd; }
+    src.connect(env); src.start(t);
+  }
+  let released = false;
+  return {
+    release(when) {
+      if (released) return; released = true;
+      const end = Math.max(when, t + 0.01), dt = end - t;
+      const lvl = dt < a ? peak * (dt / a) : peak;
+      env.gain.cancelScheduledValues(end); env.gain.setValueAtTime(lvl, end); env.gain.setTargetAtTime(0, end, Math.max(0.01, r) / 4);
+      const stopAt = end + Math.max(0.05, r) * 1.3 + 0.1;
+      if (src) src.stop(stopAt);
+      setTimeout(() => { try { env.disconnect(); src?.disconnect(); } catch {} }, (stopAt - ctx.currentTime + 0.3) * 1000);
+    },
+  };
+}
+
+export function startVoice(ctx, out, inst, t, note, vel = 100, buffer = null) {
+  if (inst.type === 'sample') return startSampleVoice(ctx, out, inst, t, note, vel, buffer);
   const f0 = midiToFreq(note), peak = Math.pow(vel / 127, 1.15) * inst.gain * 0.5;
   const [a, d, s, r] = inst.env;
   const env = ctx.createGain(); env.gain.setValueAtTime(0, t);

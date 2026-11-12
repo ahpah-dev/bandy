@@ -1,6 +1,6 @@
 // Project model, selection, undo/redo and editing operations.
-import { uid, clamp, emit, on, TRACK_COLORS } from './util.js';
-import { INSTRUMENTS, KITS } from './audio/synth.js';
+import { uid, clamp, emit, on, toast, TRACK_COLORS } from './util.js';
+import { INSTRUMENTS, KITS, sanitizeInstrument, setCustomInstruments, getCustomInstrument, isBuiltinInstrument } from './audio/synth.js';
 import { FX_PRESETS, defaultParams } from './audio/effects.js';
 
 export const SETTINGS_KEY = 'bandy.settings.v1';
@@ -17,6 +17,54 @@ export const S = {
   pos: 0, // transport position in beats (when stopped)
   dirty: false,
 };
+
+// ---- custom instruments ----
+// Two sources feed the registry: the user's library (localStorage, synth sounds only) and the open project's
+// `customInstruments` map (synth sounds used by its tracks, plus every sample instrument of the project).
+export const INST_LIB_KEY = 'bandy.instruments';
+let library = [];
+export const getLibrary = () => library;
+export function loadInstrumentLibrary() {
+  let raw = [];
+  try { raw = JSON.parse(localStorage.getItem(INST_LIB_KEY) || '[]'); } catch { raw = []; }
+  library = (Array.isArray(raw) ? raw : []).map((d) => sanitizeInstrument(d)).filter((d) => d && d.type !== 'sample');
+  refreshInstrumentRegistry();
+  return library;
+}
+export function saveLibrary(defs) {
+  library = defs.filter((d) => d && d.type !== 'sample');
+  refreshInstrumentRegistry();
+  try { localStorage.setItem(INST_LIB_KEY, JSON.stringify(library)); return true; } catch (e) { toast('Could not save the instrument library: ' + e.message, 'error'); return false; }
+}
+export function refreshInstrumentRegistry(p = S.project) {
+  const byId = new Map();
+  for (const d of library) byId.set(d.id, d);
+  for (const d of Object.values(p?.customInstruments || {})) if (d && !byId.has(d.id)) byId.set(d.id, d);
+  setCustomInstruments([...byId.values()]);
+}
+// Sanitizes the project's embedded definitions in place (they come from JSON files and may be hand-edited).
+export function cleanEmbeddedInstruments(p) {
+  const out = {};
+  for (const [id, d] of Object.entries(p.customInstruments || {})) {
+    if (!d || typeof d !== 'object') continue;
+    const c = sanitizeInstrument({ ...d, id });
+    if (c && c.id === id) out[id] = c;
+  }
+  if (Object.keys(out).length) p.customInstruments = out; else delete p.customInstruments;
+}
+// Embeds the definitions the project needs: every sample instrument, and each custom synth sound a track uses.
+export function syncProjectInstruments(p = S.project) {
+  if (!p) return;
+  const prev = p.customInstruments || {}, next = {};
+  for (const [id, d] of Object.entries(prev)) if (d?.type === 'sample') next[id] = d;
+  for (const t of p.tracks) {
+    if (t.type !== 'synth' || !t.inst || isBuiltinInstrument(t.inst)) continue;
+    const d = getCustomInstrument(t.inst) || prev[t.inst];
+    if (d) next[t.inst] = d;
+  }
+  if (Object.keys(next).length) p.customInstruments = next; else delete p.customInstruments;
+  refreshInstrumentRegistry(p);
+}
 
 export const beatsPerBar = (p = S.project) => (p.sig[0] * 4) / p.sig[1];
 export const getTrack = (id) => S.project.tracks.find((t) => t.id === id);
@@ -108,6 +156,7 @@ const snap = () => JSON.stringify(S.project);
 export function checkpoint() { undoStack.push(snap()); if (undoStack.length > 120) undoStack.shift(); redoStack.length = 0; emit('history'); }
 function restore(s) {
   S.project = JSON.parse(s);
+  cleanEmbeddedInstruments(S.project);
   S.sel.regions = new Set([...S.sel.regions].filter((id) => findRegion(id)));
   if (!getTrack(S.sel.track)) S.sel.track = S.project.tracks[0]?.id ?? null;
   changed(true);
@@ -117,8 +166,8 @@ export function redo() { if (!redoStack.length) return; undoStack.push(snap()); 
 export const canUndo = () => undoStack.length > 0, canRedo = () => redoStack.length > 0;
 export function resetHistory() { undoStack.length = 0; redoStack.length = 0; emit('history'); }
 
-export function changed(full = false) { S.dirty = true; emit('project', { full }); }
-export function loadProject(p) { S.project = p; S.sel = { track: p.tracks[0]?.id ?? null, regions: new Set() }; S.pos = 0; resetHistory(); S.dirty = false; emit('project', { full: true }); emit('selection'); emit('load'); }
+export function changed(full = false) { syncProjectInstruments(); S.dirty = true; emit('project', { full }); }
+export function loadProject(p) { cleanEmbeddedInstruments(p); S.project = p; refreshInstrumentRegistry(p); S.sel = { track: p.tracks[0]?.id ?? null, regions: new Set() }; S.pos = 0; resetHistory(); S.dirty = false; emit('project', { full: true }); emit('selection'); emit('load'); }
 
 // ---- snapping ----
 export function snapBeat(b, force = false, ppb = S.ui.ppb) { const g = S.ui.snap; if (!g) return b; return Math.round(b / g) * g; }

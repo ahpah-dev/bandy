@@ -3,10 +3,11 @@ import { h, on, emit, knob, menuBelow, promptDialog, toast, uid, debounce } from
 import { icon } from '../icons.js';
 import { S, getTrack, checkpoint, changed, addTrack, fxFromChain, selectTrack, TRACK_KINDS } from '../state.js';
 import { engine } from '../audio/engine.js';
-import { INSTRUMENTS, KITS } from '../audio/synth.js';
+import { INSTRUMENTS, KITS, listCustomInstruments } from '../audio/synth.js';
 import { LOOPS, LOOP_TYPES, GENRES, buildLoop } from '../audio/loops.js';
 import { FX, FX_LIST, FX_PRESETS, defaultParams } from '../audio/effects.js';
 import { addLoopToProject } from './actions.js';
+import { openInstrumentDesigner, importInstrumentFile, deleteCustomInstrument, MY_CAT } from './designer.js';
 
 const TABS = [['loops', 'Loops', 'loops'], ['instruments', 'Sounds', 'piano'], ['fx', 'Effects', 'fx'], ['notes', 'Notes', 'lyrics']];
 let body, tabsEl, loopFilter = { q: '', type: 'All', genre: 'All' }, playingLoop = null;
@@ -71,6 +72,9 @@ function renderInstruments() {
     listEl.replaceChildren();
     const q = instFilter.q.trim().toLowerCase(), cat = instFilter.cat;
     const hit = (name, tag) => !q || (name + ' ' + tag).toLowerCase().includes(q);
+    const mine = listCustomInstruments().filter((d) => (cat === 'All' || cat === MY_CAT || cat === d.cat) && hit(d.name, MY_CAT + ' ' + d.cat));
+    if (mine.length) listEl.append(h('div', { class: 'grp-label' }, MY_CAT), h('div', { class: 'inst-grid' }, mine.map(customBtn)));
+    else if ((cat === 'All' || cat === MY_CAT) && !q) listEl.append(h('div', { class: 'grp-label' }, MY_CAT), h('p', { class: 'muted small empty-hint' }, 'Nothing here yet. Design a sound with “New instrument”, or import a .json file. Sample instruments stay with the project they are made in.'));
     const groups = {};
     for (const i of INSTRUMENTS) if ((cat === 'All' || cat === i.cat) && hit(i.name, i.cat)) (groups[i.cat] ||= []).push(i);
     for (const [g, items] of Object.entries(groups)) {
@@ -81,11 +85,25 @@ function renderInstruments() {
     if (!listEl.childElementCount) listEl.append(h('div', { class: 'muted pad' }, 'No sounds match your search.'));
     markActive();
   };
-  const chipNames = ['All', ...new Set(INSTRUMENTS.map((i) => i.cat)), 'Drum kits'];
+  const catNames = [...new Set(INSTRUMENTS.map((i) => i.cat))];
+  const customCats = [...new Set(listCustomInstruments().map((d) => d.cat))].filter((c) => c && c !== MY_CAT && !catNames.includes(c));
+  const chipNames = ['All', MY_CAT, ...catNames, ...customCats, 'Drum kits'];
   const chips = h('div', { class: 'chips scroll' }, chipNames.map((c) => h('button', { class: 'chip' + (instFilter.cat === c ? ' on' : ''), dataset: { cat: c }, onclick: () => { instFilter.cat = c; for (const b of chips.children) b.classList.toggle('on', b.dataset.cat === c); fillList(); } }, c)));
   const search = h('input', { class: 'search', placeholder: 'Search sounds and kits…', value: instFilter.q, oninput: (e) => { instFilter.q = e.target.value; fillList(); } });
-  body.append(h('div', { class: 'sb-head' }, h('div', { class: 'sb-title' }, 'Sounds'), h('p', { class: 'muted small' }, t && t.type !== 'audio' ? `Choose a sound for “${t.name}”` : 'Click a sound to create a new instrument track.'), search, chips), listEl);
+  const fileIn = h('input', { type: 'file', accept: '.json,application/json', hidden: true, onchange: async (e) => { const f = e.target.files[0]; e.target.value = ''; await importInstrumentFile(f); } });
+  const actions = h('div', { class: 'row gap wrap inst-actions' },
+    h('button', { class: 'btn small primary', html: icon('plus', 14) + ' New instrument', title: 'Design your own synth or sample instrument', onclick: () => openInstrumentDesigner() }),
+    h('button', { class: 'btn small', html: icon('upload', 14) + ' Import…', title: 'Import an instrument .json file', onclick: () => fileIn.click() }), fileIn);
+  body.append(h('div', { class: 'sb-head' }, h('div', { class: 'sb-title' }, 'Sounds'), h('p', { class: 'muted small' }, t && t.type !== 'audio' ? `Choose a sound for “${t.name}”` : 'Click a sound to create a new instrument track.'), actions, search, chips), listEl);
   fillList();
+}
+// A custom sound: click to assign, hover for edit / delete.
+function customBtn(d) {
+  return h('div', { class: 'inst-btn custom', title: d.name, dataset: { inst: d.id }, onclick: () => pickInstrument(d) },
+    h('span', { class: 'inst-name' }, d.name, d.type === 'sample' ? h('i', { class: 'inst-tag' }, 'sample') : null),
+    h('span', { class: 'inst-acts' },
+      h('button', { class: 'icon-btn small', title: 'Edit in designer', html: icon('pencil', 12), onclick: (e) => { e.stopPropagation(); openInstrumentDesigner(d.id); } }),
+      h('button', { class: 'icon-btn small', title: 'Delete', html: icon('trash', 12), onclick: (e) => { e.stopPropagation(); deleteCustomInstrument(d.id); } })));
 }
 function markActive() {
   const t = getTrack(S.sel.track);
@@ -94,7 +112,7 @@ function markActive() {
 function pickInstrument(i) {
   let t = getTrack(S.sel.track);
   if (!t || t.type !== 'synth') t = addTrack('synth', { inst: i.id, name: i.name });
-  else { checkpoint(); t.inst = i.id; if (/^(Instrument|.* region)$/.test(t.name) || INSTRUMENTS.some((x) => x.name === t.name)) t.name = i.name; changed(); }
+  else { checkpoint(); t.inst = i.id; if (/^(Instrument|.* region)$/.test(t.name) || [...INSTRUMENTS, ...listCustomInstruments()].some((x) => x.name === t.name)) t.name = i.name; changed(); }
   const chord = i.cat === 'Bass' ? [36] : [60, 64, 67];
   chord.forEach((n) => engine.previewNote(t.id, n, 700));
   markActive();

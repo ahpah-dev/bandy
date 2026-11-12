@@ -5,6 +5,7 @@ import { S, checkpoint, changed, selectTrack, TRACK_KINDS } from '../state.js';
 import { engine } from '../audio/engine.js';
 import { FX } from '../audio/effects.js';
 import { MASTER_PRESETS } from '../audio/effects.js';
+import { getInstrument } from '../audio/synth.js';
 import { emit } from '../util.js';
 
 const pFromDb = (db) => (db <= -60 ? 0 : db >= 0 ? 0.75 + (Math.min(db, 6) / 6) * 0.25 : 0.75 * (1 - Math.pow(-db / 60, 1 / 1.6)));
@@ -41,6 +42,7 @@ export function mountMixer(container) {
     const el = h('div', { class: 'strip' });
     const ins = h('div', { class: 'ins' });
     const name = h('div', { class: 'st-name' });
+    const instLab = h('div', { class: 'st-inst' });
     const volLab = h('div', { class: 'st-db' });
     let panKnob = null;
     const panBox = h('div', { class: 'st-pan' });
@@ -49,11 +51,12 @@ export function mountMixer(container) {
     const bs = h('button', { class: 'tb solo', onclick: () => { checkpoint(); const x = cur(); x.solo = !x.solo; changed(); } }, 'S');
     const ba = h('button', { class: 'tb arm', html: icon('rec', 12), onclick: () => { checkpoint(); const x = cur(); x.arm = !x.arm; changed(); } });
     el.addEventListener('pointerdown', () => selectTrack(t.id));
-    el.append(h('div', { class: 'st-color' }), ins, panBox, h('div', { class: 'st-btns' }, bm, bs, ba), f, volLab, name);
+    el.append(h('div', { class: 'st-color' }), ins, panBox, h('div', { class: 'st-btns' }, bm, bs, ba), f, volLab, name, instLab);
     return {
       el, f, ins, name, volLab, bm, bs, ba, panBox,
       update(t) {
         el.querySelector('.st-color').style.background = t.color; name.textContent = t.name; name.title = t.name;
+        const instName = t.type === 'synth' ? getInstrument(t.inst).name : ''; instLab.textContent = instName; instLab.title = instName; instLab.style.display = instName ? '' : 'none';
         el.classList.toggle('selected', S.sel.track === t.id); bm.classList.toggle('on', t.mute); bs.classList.toggle('on', t.solo); ba.classList.toggle('on', t.arm);
         volLab.textContent = fmtDb(t.vol) + ' dB'; f.update();
         // inserts

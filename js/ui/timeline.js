@@ -3,7 +3,7 @@ import { h, clamp, hexToRgba, on, emit, showMenu, menuBelow, promptDialog, drag,
 import { icon } from '../icons.js';
 import { S, settings, beatsPerBar, getTrack, findRegion, checkpoint, changed, selectRegions, selectTrack, snapBeat, deleteRegions, duplicateRegions, copyRegions, pasteRegions, splitRegionAt, contentBeats, compatible, projectEnd, removeTrack, duplicateTrack, moveTrack, addRegion, makeMidiRegion, makeAudioRegion, TRACK_KINDS, mergeRegionsMidi, setRegionSpeed, presetChain } from '../state.js';
 import { engine, audioInfo } from '../audio/engine.js';
-import { INSTRUMENTS, KITS } from '../audio/synth.js';
+import { getInstrument, KITS } from '../audio/synth.js';
 import { computePeaks } from '../audio/dsp.js';
 import { TRACK_COLORS } from '../util.js';
 import { importAudioFiles, openNewTrackDialog, openEditorFor } from './actions.js';
@@ -215,7 +215,7 @@ function createHeader(t0) {
       bm.classList.toggle('on', t.mute); bs.classList.toggle('on', t.solo); ba.classList.toggle('on', t.arm); bmon.classList.toggle('on', t.monitor);
       bmon.style.display = t.type === 'audio' ? '' : 'none';
       bfx.classList.toggle('has', t.fx.some((f) => !f.bypass));
-      inst.textContent = t.type === 'synth' ? (INSTRUMENTS.find((i) => i.id === t.inst)?.name || 'Instrument') : t.type === 'drums' || t.type === 'sampler' ? (KITS.find((k) => k.id === t.kit)?.name || 'Kit') : '';
+      inst.textContent = t.type === 'synth' ? getInstrument(t.inst).name : t.type === 'drums' || t.type === 'sampler' ? (KITS.find((k) => k.id === t.kit)?.name || 'Kit') : '';
       inst.style.display = inst.textContent ? '' : 'none';
       if (document.activeElement !== vol) vol.value = t.vol;
       if (document.activeElement !== pan) pan.value = t.pan;

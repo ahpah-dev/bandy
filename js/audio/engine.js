@@ -2,7 +2,7 @@
 import { S, settings, getTrack, contentBeats, projectEnd } from '../state.js';
 import { dbToGain, clamp, emit, on } from '../util.js';
 import { createFx, MASTER_PRESETS } from './effects.js';
-import { startVoice, playDrum, clickSound, INST_BY_ID } from './synth.js';
+import { startVoice, playDrum, clickSound, getInstrument } from './synth.js';
 import { reverseBuffer, stretchBuffer } from './dsp.js';
 
 const WORKLET_URL = new URL('./worklets.js', import.meta.url).href;
@@ -137,8 +137,8 @@ export function scheduleAutomation(g, p, startBeat, t0, endBeat = Infinity) {
 export function triggerNote(g, track, dest, note, when, dur, vel, live = null) {
   const ctx = g.ctx;
   if (track.type === 'synth') {
-    const inst = INST_BY_ID[track.inst] || INST_BY_ID.grand;
-    const v = startVoice(ctx, dest, inst, when, note, vel);
+    const inst = getInstrument(track.inst);
+    const v = startVoice(ctx, dest, inst, when, note, vel, inst.type === 'sample' ? S.buffers.get(inst.bufferId) || null : null);
     if (dur != null) v.release(when + dur);
     return v;
   }

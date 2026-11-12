@@ -29,6 +29,7 @@ ES modules and AudioWorklets need `http://` (not `file://`), so use any static s
 | **Recording** | Microphone / audio-interface recording with count-in, input monitoring, device picker and latency compensation · MIDI recording from the on-screen keyboard, computer keyboard ("musical typing") and Web MIDI devices |
 | **MIDI editor** | Piano roll and drum grid with draw / select / erase tools, velocity lane, snap, quantise, humanise, transpose, scale highlighting, copy / paste / duplicate, live preview |
 | **Sounds** | 120 synth instruments, searchable and filterable by category (keys, plucked, bass, strings, brass, winds, leads, pads, mallets, synth FX), 15 drum kits (808, acoustic, trap, lo-fi, house, rock, jazz, techno, 909, boom bap, dubstep, Afro Latin, electro, hard trap, brush), 16-pad sampler (load or record your own samples) |
+| **Custom instruments** | Design your own synth sounds in the instrument designer (4 oscillator layers, ADSR, filter with key tracking and env, vibrato, tremolo, drive, glide, FM, filter LFO, attack noise, unison) with a live keyboard preview · sample instruments from any audio file (pitched across the keyboard, optional loop) · your library is kept in this browser, sample instruments stay with their project · import / export `.bandy-instrument.json` files and embed custom sounds in `.bandy` projects |
 | **Loops** | 110+ original, royalty-free generated loops across 13 genres that follow the project key — preview, drag to the timeline, or click + |
 | **Effects** | EQ, compressor, reverb, delay (tempo-synced), distortion, amp sim, chorus, flanger, phaser, filter / auto-wah, tremolo, bitcrusher, stereo width, noise gate, pitch shift, **Auto-Pitch** (real-time retune to a key/scale) · 40+ presets (vocal, guitar, bass, drums, synth, creative) · save your own presets |
 | **Mixer & mastering** | Channel strips with faders, pan, meters and inserts · master fader · one-click mastering presets (Universal, Tape, Punchy, Clarity, Warm, Loud) with limiter and soft clipper |
@@ -41,6 +42,14 @@ ES modules and AudioWorklets need `http://` (not `file://`), so use any static s
 ### What Bandy does *not* have
 
 Bandy is a local-first app, so BandLab's cloud features are intentionally out of scope: accounts, social feed, publishing, real-time collaboration and cloud sync. The stem splitter is a lightweight DSP tool, not AI source separation, and there is no MP3 encoder (export WAV and convert with any tool). Loops and instruments are synthesised by code rather than recorded samples, so they sound "synthetic" by design — and are free of any licensing worries.
+
+## Custom instruments
+
+Click **+ New instrument** in the Sounds tab (or the pencil on a custom sound) to open the designer. Sounds you save go to your browser's library and show up under **My instruments**. Hover a custom sound to edit or delete it; editing a built-in sound always saves a new copy.
+
+- **Synth** sounds are stored in your library (`localStorage`) and copied into any project that uses them, so `.bandy` files play on other machines.
+- **Sample** instruments are made from an audio file you load in the designer. They live in the current project (the audio is saved with it) and play pitched from the root note, optionally looping.
+- **Import / Export** use `.bandy-instrument.json` files. Export a sound from the designer; import one (or an array of them) with **Import…** in the Sounds tab. Imported JSON is validated and clamped, so out-of-range values cannot break audio.
 
 ## Keyboard shortcuts
 
@@ -57,7 +66,8 @@ js/state.js           project model, selection, undo/redo, region editing
 js/storage.js, zip.js IndexedDB persistence, .bandy (zip) import/export
 js/audio/             engine (graph + scheduler), synth, effects, loops, DSP,
                       recording, offline render / MIDI export, AudioWorklets
-js/ui/                topbar, timeline, piano roll, mixer, sidebar, editors, dialogs
+js/ui/                topbar, timeline, piano roll, mixer, sidebar, editors, dialogs,
+                      designer (custom instruments: designer, import / export)
 tools/serve.py        no-cache static dev server
 tests/index.html      in-browser smoke tests (effects, presets, instruments, loops, DSP)
 ```

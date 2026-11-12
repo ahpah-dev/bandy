@@ -1,6 +1,6 @@
 // Bandy – application bootstrap, layout and keyboard shortcuts.
 import { h, on, emit, toast, debounce, closeMenu } from './util.js';
-import { S, settings, newProject, loadProject, undo, redo, selectRegions, getTrack, checkpoint, changed, deleteRegions, copyRegions, pasteRegions, duplicateRegions, splitSelectedAt, beatsPerBar, projectEnd, snapBeat, findRegion } from './state.js';
+import { S, settings, newProject, loadProject, loadInstrumentLibrary, undo, redo, selectRegions, getTrack, checkpoint, changed, deleteRegions, copyRegions, pasteRegions, duplicateRegions, splitSelectedAt, beatsPerBar, projectEnd, snapBeat, findRegion } from './state.js';
 import { engine } from './audio/engine.js';
 import { startRecording, stopRecording, liveNote, initMidi } from './audio/record.js';
 import { initTopbar, toggleRecord } from './ui/topbar.js';
@@ -14,6 +14,7 @@ import * as storage from './storage.js';
 
 async function boot() {
   applyTheme();
+  loadInstrumentLibrary(); // user's custom synth sounds, registered before any project is loaded
   S.ui.bottomH = Math.max(280, Math.min(420, Math.round(innerHeight * 0.44)));
   loadProject(newProject());
   const app = document.getElementById('app');

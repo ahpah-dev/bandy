@@ -107,6 +107,11 @@ end $$;
 drop trigger if exists songs_limit_uploads on public.songs;
 create trigger songs_limit_uploads before insert on public.songs for each row execute function public.limit_uploads();
 
+-- trigger functions must not be callable through the REST API
+revoke execute on function public.sync_likes() from public, anon, authenticated;
+revoke execute on function public.count_report() from public, anon, authenticated;
+revoke execute on function public.limit_uploads() from public, anon, authenticated;
+
 -- play counter (approximate by design; the site only calls it once per song per page view)
 create or replace function public.record_play(song_id uuid) returns void language sql security definer set search_path = public as $$
   update public.songs set plays = plays + 1 where id = song_id and not hidden;

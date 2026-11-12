@@ -5,8 +5,8 @@
 // (see docs/SONG_BROWSER.md). The anon key is public by design - Row Level Security in the schema
 // is what protects the data. Leave both empty to run the Song browser in local demo mode.
 export const SUPABASE = {
-  url: '',
-  anonKey: '',
+  url: 'https://gxwjozroaibwbwpmsell.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4d2pvenJvYWlid2J3cG1zZWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0ODY2MzQsImV4cCI6MjExMDA2MjYzNH0._X_1rbIvomvge6lzrA50ulsVetv7_x8nhE3zF3qIbeE',
 };
 
 export const LIMITS = {

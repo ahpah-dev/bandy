@@ -56,9 +56,11 @@ Click **+ New instrument** in the Sounds tab (or the pencil on a custom sound) t
 The designer opens with an **AI Assist** card: describe a sound ("warm, slow analog pad"), or tap one of the example ideas, and press **Generate** (or `Ctrl/Cmd+Enter`). The result lands in the normal designer controls, plays a preview note, and shows a summary of what was built, so you can tweak it by hand and **Save**. Use **Variation** for a different take, or **Undo** to bring back the sound you had before.
 
 1. Start the local bridge from your Bandy folder and leave it running: `python tools/ai_bridge.py`. The card shows a green **Bridge online** badge when it is reachable (click the badge to re-check).
-2. Open **Provider** and choose OpenAI (your own API key) or [Kilo Gateway](https://app.kilo.ai/) with its Gateway key, plus a model ID.
+2. Open **Provider** and pick a provider, a model ID and your API key.
 
-The bridge listens only on `127.0.0.1`, accepts requests only from Bandy (the GitHub Pages site or the dev server on port 5173/5174), and stores nothing. Your provider and model choice is remembered; your **API key is kept in memory for the current tab only and never saved**. Your prompt goes to the provider you pick and may be billed by them. Generated sounds are synth presets (never audio), and every field is validated and clamped before it reaches the audio engine.
+**Providers and custom keys.** Built-in presets cover OpenAI, Anthropic (Claude), OpenRouter, Groq, Mistral, DeepSeek, Together AI, Kilo Gateway and a local Ollama (no key needed). Choose **+ Add custom provider…** to use *any* OpenAI-compatible chat-completions endpoint — your own gateway, a company proxy, LM Studio, vLLM and so on: give it a name, an `https://` URL (plain `http://` is accepted for localhost only) and an optional default model. Custom providers are saved in this browser and can be removed again. Each provider keeps its own key and model.
+
+The bridge listens only on `127.0.0.1`, accepts requests only from Bandy (the GitHub Pages site or the dev server on port 5173/5174), never follows redirects (so a key can't leak to another host), and stores nothing. Your provider and model choice is remembered. **API keys are kept in memory for the current tab only** unless you tick **Remember my keys on this device**, which stores them unencrypted in this browser's `localStorage` — only do that on a computer you trust; unticking removes them. If Bandy shows *Bridge outdated*, stop the old `ai_bridge.py` and start it again. Your prompt goes to the provider you pick and may be billed by them. Generated sounds are synth presets (never audio), and every field is validated and clamped before it reaches the audio engine.
 
 ## Keyboard shortcuts
 

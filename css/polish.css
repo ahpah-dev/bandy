@@ -112,3 +112,18 @@ button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
 .ai-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: rgba(255, 255, 255, .07); color: var(--text-dim); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* AI Assist: providers & custom keys */
+.ai-custom { display: none; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border-radius: 12px; border: 1px dashed #8f78ff; background: rgba(124, 92, 255, .07); }
+.ai-custom.open { display: grid; }
+.ai-custom .wide, .ai-ctitle, .ai-cactions, .ai-cmsg { grid-column: 1 / -1; }
+.ai-ctitle { font-weight: 700; font-size: 12px; }
+.ai-cactions { display: flex; gap: 8px; }
+.ai-cmsg { margin: 0; color: var(--accent2); min-height: 0; }
+.ai-endpoint { grid-column: 1 / -1; font: 11px ui-monospace, Consolas, monospace; color: var(--text-faint); word-break: break-all; }
+.ai-remember { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
+.ai-remember input { margin-top: 2px; accent-color: var(--accent); }
+.ai-remember em { font-style: normal; color: var(--text-faint); }
+.ai-sfoot { display: flex; justify-content: flex-end; }
+.btn.danger { color: var(--accent2); }
+.ai-dot.warn { background: var(--warn); box-shadow: 0 0 8px rgba(255, 176, 32, .7); }

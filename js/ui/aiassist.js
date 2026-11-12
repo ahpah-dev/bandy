@@ -6,14 +6,37 @@ import { icon } from '../icons.js';
 import { sanitizeInstrument } from '../audio/synth.js';
 
 export const BRIDGE = 'http://127.0.0.1:5175';
+const MIN_BRIDGE_VERSION = 2; // bridges older than this don't understand custom endpoints
+// OpenAI-compatible chat-completions endpoints. `key: false` providers (e.g. a local Ollama) need no API key.
 const PROVIDERS = {
-  openai: { label: 'OpenAI (your own key)', model: 'gpt-4.1-mini', placeholder: 'sk-…', help: 'Create a key at platform.openai.com/api-keys.' },
-  kilo: { label: 'Kilo Gateway', model: 'cohere/north-mini-code:free', placeholder: 'Kilo Gateway API key', help: 'Sign in at app.kilo.ai and copy your Gateway key from your profile.' },
+  openai: { label: 'OpenAI', endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4.1-mini', placeholder: 'sk-…', help: 'Create a key at platform.openai.com/api-keys.' },
+  anthropic: { label: 'Anthropic (Claude)', endpoint: 'https://api.anthropic.com/v1/chat/completions', model: 'claude-haiku-5-5', placeholder: 'sk-ant-…', help: "Uses Anthropic's OpenAI-compatible endpoint. Create a key at console.anthropic.com." },
+  openrouter: { label: 'OpenRouter', endpoint: 'https://openrouter.ai/api/v1/chat/completions', model: 'openai/gpt-4.1-mini', placeholder: 'sk-or-…', help: 'One key for hundreds of models: openrouter.ai/keys.' },
+  groq: { label: 'Groq', endpoint: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile', placeholder: 'gsk_…', help: 'Fast open models: console.groq.com/keys.' },
+  mistral: { label: 'Mistral', endpoint: 'https://api.mistral.ai/v1/chat/completions', model: 'mistral-small-latest', placeholder: 'Mistral API key', help: 'console.mistral.ai/api-keys.' },
+  deepseek: { label: 'DeepSeek', endpoint: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat', placeholder: 'sk-…', help: 'platform.deepseek.com/api_keys.' },
+  together: { label: 'Together AI', endpoint: 'https://api.together.xyz/v1/chat/completions', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', placeholder: 'Together API key', help: 'api.together.ai/settings/api-keys.' },
+  kilo: { label: 'Kilo Gateway', endpoint: 'https://ai-gateway.kilo.ai/api/v1/chat/completions', model: 'cohere/north-mini-code:free', placeholder: 'Kilo Gateway API key', help: 'Sign in at app.kilo.ai and copy your Gateway key from your profile.' },
+  ollama: { label: 'Ollama (local, no key)', endpoint: 'http://127.0.0.1:11434/v1/chat/completions', model: 'llama3.1', placeholder: 'Not needed', key: false, help: 'Runs on your computer. Start Ollama and pull a model first (ollama pull llama3.1).' },
 };
+const CUSTOM_PREFIX = 'custom:';
 const EXAMPLES = ['Warm, slow analog pad', 'Plucky 80s synth bass', 'Glassy FM bells', 'Dirty acid lead', 'Soft breathy flute', 'Wobbly dubstep bass', 'Dreamy detuned strings', 'Tiny chiptune lead'];
-const sessionKeys = {}; // memory only, per provider
-const prefs = () => { try { return JSON.parse(localStorage.getItem('bandy.ai') || '{}'); } catch { return {}; } };
-const savePrefs = (p) => localStorage.setItem('bandy.ai', JSON.stringify(p));
+const sessionKeys = {}; // in memory, per provider id
+const readJson = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
+const prefs = () => readJson('bandy.ai', {});
+const savePrefs = (p) => localStorage.setItem('bandy.ai', JSON.stringify({ provider: p.provider, models: p.models, remember: !!p.remember }));
+// User-defined OpenAI-compatible providers: [{ id, name, endpoint, model }]
+const loadCustom = () => { const l = readJson('bandy.ai.custom', []); return (Array.isArray(l) ? l : []).filter((c) => c && typeof c.id === 'string' && typeof c.endpoint === 'string' && validEndpoint(c.endpoint)); };
+const saveCustom = (list) => localStorage.setItem('bandy.ai.custom', JSON.stringify(list));
+// Keys are only written to localStorage when the user ticks "Remember my keys on this device".
+const loadKeys = () => readJson('bandy.ai.keys', {});
+const storeKey = (id, key) => { const all = loadKeys(); if (key) all[id] = key; else delete all[id]; localStorage.setItem('bandy.ai.keys', JSON.stringify(all)); };
+export function validEndpoint(u) {
+  try {
+    const x = new URL(u), local = ['localhost', '127.0.0.1', '[::1]'].includes(x.hostname);
+    return (x.protocol === 'https:' || (x.protocol === 'http:' && local)) && !x.username && !x.password;
+  } catch { return false; }
+}
 
 const SYSTEM = `You are an expert sound designer for a Web Audio synthesizer. Reply with ONE JSON object and nothing else (no markdown, no commentary).
 Schema: {"name":string,"type":"synth","osc":[[wave,detuneCents,gain,octave]],"env":[attackSec,decaySec,sustain,releaseSec],"gain":number,
@@ -42,8 +65,12 @@ function friendly(status, fallback) {
 
 // ctx: { snapshot(), restore(snap), apply(def), preview() }
 export function buildAiAssist(ctx) {
-  const p = { provider: 'openai', models: {}, ...prefs() };
-  const prov = () => PROVIDERS[p.provider] || PROVIDERS.openai;
+  const p = { provider: 'openai', models: {}, remember: false, ...prefs() };
+  let customs = loadCustom();
+  const allProviders = () => ({ ...PROVIDERS, ...Object.fromEntries(customs.map((c) => [c.id, { label: c.name, endpoint: c.endpoint, model: c.model || '', placeholder: 'API key (if your endpoint needs one)', custom: true, help: 'Custom endpoint.' }])) });
+  const prov = () => allProviders()[p.provider] || PROVIDERS.openai;
+  if (!allProviders()[p.provider]) p.provider = 'openai';
+  const keyOf = (id) => sessionKeys[id] ?? (p.remember ? loadKeys()[id] : '') ?? '';
 
   const prompt = h('textarea', { class: 'ai-prompt', rows: 3, maxlength: 600, placeholder: 'Describe the sound you imagine…', 'aria-label': 'Describe the instrument' });
   const counter = h('span', { class: 'ai-count' }, '0 / 600');
@@ -54,23 +81,68 @@ export function buildAiAssist(ctx) {
   const status = h('div', { class: 'ai-status', role: 'status', 'aria-live': 'polite' });
 
   // provider settings
-  const provSel = h('select', { class: 'select', onchange: (e) => { p.provider = e.target.value; refreshSettings(); savePrefs(p); } }, Object.entries(PROVIDERS).map(([k, v]) => h('option', { value: k, selected: k === p.provider }, v.label)));
+  const ADD = '__add__';
+  const provSel = h('select', { class: 'select', onchange: (e) => {
+    if (e.target.value === ADD) { editor.classList.add('open'); cName.focus(); provSel.value = p.provider; return; }
+    p.provider = e.target.value; editor.classList.remove('open'); refreshSettings(); savePrefs(p);
+  } });
+  const fillProviders = () => {
+    provSel.replaceChildren(...Object.entries(allProviders()).map(([k, v]) => h('option', { value: k, selected: k === p.provider }, v.custom ? v.label + ' (custom)' : v.label)), h('option', { value: ADD }, '+ Add custom provider…'));
+    provSel.value = p.provider;
+  };
   const model = h('input', { class: 'text-input', placeholder: 'Model ID', oninput: () => { p.models[p.provider] = model.value.trim(); savePrefs(p); } });
-  const key = h('input', { class: 'text-input', type: 'password', autocomplete: 'off', spellcheck: 'false', oninput: () => { sessionKeys[p.provider] = key.value; } });
+  const key = h('input', { class: 'text-input', type: 'password', autocomplete: 'off', spellcheck: 'false', oninput: () => {
+    sessionKeys[p.provider] = key.value; if (p.remember) storeKey(p.provider, key.value.trim());
+  } });
   const eye = h('button', { type: 'button', class: 'icon-btn small', title: 'Show / hide key', html: icon('lock', 14), onclick: () => { key.type = key.type === 'password' ? 'text' : 'password'; } });
+  const keyField = h('label', { class: 'id-field wide' }, h('span', null, 'API key'), h('div', { class: 'ai-keyrow' }, key, eye));
+  const remember = h('input', { type: 'checkbox', checked: p.remember, onchange: (e) => {
+    p.remember = e.target.checked; savePrefs(p);
+    if (p.remember) { for (const [id, k] of Object.entries(sessionKeys)) if (k) storeKey(id, k.trim()); }
+    else localStorage.removeItem('bandy.ai.keys');
+    toast(p.remember ? 'Keys will be remembered on this device' : 'Stored keys removed');
+  } });
   const help = h('p', { class: 'muted small ai-help' });
+  const endpointNote = h('code', { class: 'ai-endpoint' });
+  // custom provider editor
+  const cName = h('input', { class: 'text-input', placeholder: 'e.g. My company gateway', maxlength: 40 });
+  const cUrl = h('input', { class: 'text-input', placeholder: 'https://api.example.com/v1/chat/completions', spellcheck: 'false' });
+  const cModel = h('input', { class: 'text-input', placeholder: 'default model ID (optional)' });
+  const cMsg = h('p', { class: 'ai-cmsg small' });
+  const editor = h('div', { class: 'ai-custom wide' },
+    h('div', { class: 'ai-ctitle' }, 'Custom provider', h('span', { class: 'muted small' }, ' – any OpenAI-compatible chat-completions API')),
+    h('label', { class: 'id-field' }, h('span', null, 'Name'), cName), h('label', { class: 'id-field' }, h('span', null, 'Model ID'), cModel),
+    h('label', { class: 'id-field wide' }, h('span', null, 'Endpoint URL (https, or http for localhost)'), cUrl), cMsg,
+    h('div', { class: 'ai-cactions' },
+      h('button', { type: 'button', class: 'btn small primary', onclick: () => {
+        const name = cName.value.trim(), url = cUrl.value.trim();
+        if (!name) { cMsg.textContent = 'Give it a name.'; return; }
+        if (!validEndpoint(url)) { cMsg.textContent = 'Enter a full https:// URL (http:// only works for localhost).'; return; }
+        const id = CUSTOM_PREFIX + Math.random().toString(36).slice(2, 9);
+        customs = [...customs, { id, name: name.slice(0, 40), endpoint: url, model: cModel.value.trim() }]; saveCustom(customs);
+        p.provider = id; savePrefs(p); editor.classList.remove('open'); cMsg.textContent = ''; cName.value = cUrl.value = cModel.value = ''; fillProviders(); refreshSettings(); toast('Provider added');
+      } }, 'Add provider'),
+      h('button', { type: 'button', class: 'btn small', onclick: () => { editor.classList.remove('open'); cMsg.textContent = ''; } }, 'Cancel')));
+  const removeBtn = h('button', { type: 'button', class: 'btn small ghost danger', onclick: () => {
+    const id = p.provider; customs = customs.filter((c) => c.id !== id); saveCustom(customs); delete sessionKeys[id]; storeKey(id, ''); delete p.models[id];
+    p.provider = 'openai'; savePrefs(p); fillProviders(); refreshSettings(); toast('Provider removed');
+  } }, 'Remove this provider');
   const startCmd = 'python tools/ai_bridge.py';
-  const setup = h('div', { class: 'ai-setup' }, h('p', { class: 'muted small' }, 'The bridge keeps your key off the page and lets the browser reach the provider. Run this in your Bandy folder and leave it open:'),
+  const setup = h('div', { class: 'ai-setup' }, h('p', { class: 'muted small' }, 'The bridge lets the browser reach AI providers (browsers block direct calls) and keeps your key off the page. Run this in your Bandy folder and leave it open:'),
     h('div', { class: 'ai-cmd' }, h('code', null, startCmd), h('button', { type: 'button', class: 'btn small', onclick: () => { navigator.clipboard?.writeText(startCmd); toast('Command copied'); } }, 'Copy')));
   const settings = h('div', { class: 'ai-settings' },
     h('label', { class: 'id-field' }, h('span', null, 'Provider'), provSel), h('label', { class: 'id-field' }, h('span', null, 'Model ID'), model),
-    h('label', { class: 'id-field wide' }, h('span', null, 'API key'), h('div', { class: 'ai-keyrow' }, key, eye)), help,
-    h('p', { class: 'muted small' }, 'Your key lives only in memory for this tab and is never saved. Your prompt is sent to the provider you choose; usage may be billed by them.'));
+    editor, keyField, help, endpointNote,
+    h('label', { class: 'ai-remember wide' }, remember, h('span', null, 'Remember my keys on this device ', h('em', null, '(stored unencrypted in this browser — only on a computer you trust)'))),
+    h('div', { class: 'ai-sfoot wide' }, removeBtn),
+    h('p', { class: 'muted small' }, 'Keys stay in memory for this tab unless you tick the box above. Your prompt is sent to the provider you choose; they may bill you.'));
   function refreshSettings() {
     const v = prov();
-    model.value = p.models[p.provider] || v.model; key.value = sessionKeys[p.provider] || ''; key.placeholder = v.placeholder; help.textContent = v.help;
+    model.value = p.models[p.provider] || v.model; key.value = keyOf(p.provider) || ''; key.placeholder = v.placeholder; help.textContent = v.help;
+    keyField.style.display = v.key === false ? 'none' : ''; removeBtn.style.display = v.custom ? '' : 'none';
+    endpointNote.textContent = v.endpoint;
   }
-  refreshSettings();
+  fillProviders(); refreshSettings();
   const gearBtn = h('button', { type: 'button', class: 'btn small ghost', 'aria-expanded': 'false', html: icon('gear', 14) + '<span>Provider</span>', onclick: () => { const open = card.classList.toggle('settings-open'); gearBtn.setAttribute('aria-expanded', String(open)); if (open) ping(); } });
 
   const spinner = h('span', { class: 'ai-spin', 'aria-hidden': 'true' });
@@ -87,12 +159,12 @@ export function buildAiAssist(ctx) {
       h('div', { class: 'ai-actions' }, gen, cancel, again, undoBtn, h('span', { class: 'spacer' }), gearBtn),
       settings, setup, status));
 
-  let abort = null, prev = null, last = '', online = null;
+  let abort = null, prev = null, last = '', online = null, outdated = false;
   function sync() {
     const busy = !!abort;
     card.classList.toggle('busy', busy); gen.disabled = busy; prompt.disabled = busy; genLabel.textContent = busy ? 'Generating…' : 'Generate';
     cancel.style.display = busy ? '' : 'none'; again.style.display = !busy && last ? '' : 'none'; undoBtn.style.display = !busy && prev ? '' : 'none';
-    card.classList.toggle('offline', online === false);
+    card.classList.toggle('offline', online === false || outdated);
   }
   function setState(kind, msg, tags = []) {
     status.className = 'ai-status ' + kind; status.replaceChildren();
@@ -110,21 +182,28 @@ export function buildAiAssist(ctx) {
     try {
       const r = await fetch(BRIDGE + '/health', { signal: AbortSignal.timeout(1500) });
       online = r.ok;
-    } catch { online = false; }
-    dot.className = 'ai-dot ' + (online ? 'ok' : 'bad'); bridgeLabel.textContent = online ? 'Bridge online' : 'Bridge offline'; sync();
-    return online;
+      const info = online ? await r.json().catch(() => ({})) : {};
+      outdated = online && !(info.version >= MIN_BRIDGE_VERSION);
+    } catch { online = false; outdated = false; }
+    dot.className = 'ai-dot ' + (outdated ? 'warn' : online ? 'ok' : 'bad');
+    bridgeLabel.textContent = outdated ? 'Bridge outdated' : online ? 'Bridge online' : 'Bridge offline';
+    if (outdated) setState('error', 'Your local bridge is an older version. Stop it and start it again with the command below.');
+    sync();
+    return online && !outdated;
   }
 
   async function run(variation) {
-    const text = (variation ? last : prompt.value).trim(), m = model.value.trim(), k = key.value.trim();
+    const text = (variation ? last : prompt.value).trim(), m = model.value.trim(), k = key.value.trim(), v = prov();
     if (!text) { setState('error', 'Describe the sound first — or tap one of the ideas above.'); prompt.focus(); return; }
-    if (!k) { card.classList.add('settings-open'); gearBtn.setAttribute('aria-expanded', 'true'); setState('error', 'Add your API key in Provider settings to generate.'); key.focus(); return; }
+    if (!k && v.key !== false && !v.custom) { card.classList.add('settings-open'); gearBtn.setAttribute('aria-expanded', 'true'); setState('error', 'Add your API key in Provider settings to generate.'); key.focus(); return; }
     if (!m) { card.classList.add('settings-open'); setState('error', 'Choose a model ID in Provider settings.'); model.focus(); return; }
+    if (online === null || outdated) await ping();
+    if (outdated) return;
     last = text; abort = new AbortController(); sync(); setState('loading', variation ? 'Dreaming up a different take…' : 'Designing your instrument…');
     const timer = setTimeout(() => abort?.abort('timeout'), 100000);
     try {
       const user = variation ? `${text}\n\nGive a clearly different variation from a typical take on this description.` : text;
-      const res = await fetch(BRIDGE + '/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abort.signal, body: JSON.stringify({ provider: p.provider, key: k, model: m, temperature: variation ? 1 : 0.7, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: user }] }) });
+      const res = await fetch(BRIDGE + '/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abort.signal, body: JSON.stringify({ endpoint: v.endpoint, key: k, model: m, temperature: variation ? 1 : 0.7, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: user }] }) });
       online = true; dot.className = 'ai-dot ok'; bridgeLabel.textContent = 'Bridge online';
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw Object.assign(new Error(friendly(res.status, data.error?.message || data.error || `Request failed (${res.status}).`)), { handled: true });

@@ -62,17 +62,30 @@ function renderLoops() {
 }
 
 // ---------------- Instruments ----------------
+let instFilter = { q: '', cat: 'All' };
 function renderInstruments() {
   const t = getTrack(S.sel.track);
-  const groups = {};
-  INSTRUMENTS.forEach((i) => (groups[i.cat] ||= []).push(i));
-  const wrap = h('div', { class: 'inst-wrap' });
-  body.append(h('div', { class: 'sb-head' }, h('div', { class: 'sb-title' }, 'Sounds'), h('p', { class: 'muted small' }, t && t.type !== 'audio' ? `Choose a sound for “${t.name}”` : 'Click a sound to create a new instrument track.')), wrap);
-  for (const [cat, items] of Object.entries(groups)) {
-    wrap.append(h('div', { class: 'grp-label' }, cat), h('div', { class: 'inst-grid' }, items.map((i) => h('button', { class: 'inst-btn', dataset: { inst: i.id }, onclick: () => pickInstrument(i) }, h('span', null, i.name)))));
-  }
-  wrap.append(h('div', { class: 'grp-label' }, 'Drum kits'), h('div', { class: 'inst-grid' }, KITS.map((k) => h('button', { class: 'inst-btn', dataset: { kit: k.id }, onclick: () => pickKit(k) }, h('span', null, k.name)))));
-  markActive();
+  const listEl = h('div', { class: 'inst-wrap inst-list' });
+  // Search and chips only refresh the list container, so the input keeps focus while typing.
+  const fillList = () => {
+    listEl.replaceChildren();
+    const q = instFilter.q.trim().toLowerCase(), cat = instFilter.cat;
+    const hit = (name, tag) => !q || (name + ' ' + tag).toLowerCase().includes(q);
+    const groups = {};
+    for (const i of INSTRUMENTS) if ((cat === 'All' || cat === i.cat) && hit(i.name, i.cat)) (groups[i.cat] ||= []).push(i);
+    for (const [g, items] of Object.entries(groups)) {
+      listEl.append(h('div', { class: 'grp-label' }, g), h('div', { class: 'inst-grid' }, items.map((i) => h('button', { class: 'inst-btn', title: i.name, dataset: { inst: i.id }, onclick: () => pickInstrument(i) }, h('span', null, i.name)))));
+    }
+    const kits = (cat === 'All' || cat === 'Drum kits') ? KITS.filter((k) => hit(k.name, 'drum kit')) : [];
+    if (kits.length) listEl.append(h('div', { class: 'grp-label' }, 'Drum kits'), h('div', { class: 'inst-grid' }, kits.map((k) => h('button', { class: 'inst-btn', title: k.name, dataset: { kit: k.id }, onclick: () => pickKit(k) }, h('span', null, k.name)))));
+    if (!listEl.childElementCount) listEl.append(h('div', { class: 'muted pad' }, 'No sounds match your search.'));
+    markActive();
+  };
+  const chipNames = ['All', ...new Set(INSTRUMENTS.map((i) => i.cat)), 'Drum kits'];
+  const chips = h('div', { class: 'chips scroll' }, chipNames.map((c) => h('button', { class: 'chip' + (instFilter.cat === c ? ' on' : ''), dataset: { cat: c }, onclick: () => { instFilter.cat = c; for (const b of chips.children) b.classList.toggle('on', b.dataset.cat === c); fillList(); } }, c)));
+  const search = h('input', { class: 'search', placeholder: 'Search sounds and kits…', value: instFilter.q, oninput: (e) => { instFilter.q = e.target.value; fillList(); } });
+  body.append(h('div', { class: 'sb-head' }, h('div', { class: 'sb-title' }, 'Sounds'), h('p', { class: 'muted small' }, t && t.type !== 'audio' ? `Choose a sound for “${t.name}”` : 'Click a sound to create a new instrument track.'), search, chips), listEl);
+  fillList();
 }
 function markActive() {
   const t = getTrack(S.sel.track);

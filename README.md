@@ -1,7 +1,7 @@
 # Bandy
 
 **A free, open-source music studio that runs entirely in your browser.**
-Multitrack recording, MIDI editing, 22 synths, drum kits, a sampler, 16 effects with 40+ presets, a loop library, mixing, automation, mastering and WAV / stem / MIDI export — no account, no server, no install, no build step.
+Multitrack recording, MIDI editing, 120 synth instruments, 15 drum kits, a sampler, 16 effects with 40+ presets, a loop library, mixing, automation, mastering and WAV / stem / MIDI export — no account, no server, no install, no build step.
 
 ![Bandy studio](docs/screenshot.jpg)
 
@@ -28,7 +28,7 @@ ES modules and AudioWorklets need `http://` (not `file://`), so use any static s
 | **Arrangement** | Bar ruler, snap grid, zoom, drag / trim / split / duplicate / copy-paste regions, loop handle, fades, region mute, marquee select, drag-and-drop audio files and loops, split tool, loop-region strip |
 | **Recording** | Microphone / audio-interface recording with count-in, input monitoring, device picker and latency compensation · MIDI recording from the on-screen keyboard, computer keyboard ("musical typing") and Web MIDI devices |
 | **MIDI editor** | Piano roll and drum grid with draw / select / erase tools, velocity lane, snap, quantise, humanise, transpose, scale highlighting, copy / paste / duplicate, live preview |
-| **Sounds** | 22 synth instruments (keys, pads, leads, basses), 5 drum kits (808, acoustic, trap, lo-fi, house), 16-pad sampler (load or record your own samples) |
+| **Sounds** | 120 synth instruments, searchable and filterable by category (keys, plucked, bass, strings, brass, winds, leads, pads, mallets, synth FX), 15 drum kits (808, acoustic, trap, lo-fi, house, rock, jazz, techno, 909, boom bap, dubstep, Afro Latin, electro, hard trap, brush), 16-pad sampler (load or record your own samples) |
 | **Loops** | 110+ original, royalty-free generated loops across 13 genres that follow the project key — preview, drag to the timeline, or click + |
 | **Effects** | EQ, compressor, reverb, delay (tempo-synced), distortion, amp sim, chorus, flanger, phaser, filter / auto-wah, tremolo, bitcrusher, stereo width, noise gate, pitch shift, **Auto-Pitch** (real-time retune to a key/scale) · 40+ presets (vocal, guitar, bass, drums, synth, creative) · save your own presets |
 | **Mixer & mastering** | Channel strips with faders, pan, meters and inserts · master fader · one-click mastering presets (Universal, Tape, Punchy, Clarity, Warm, Loud) with limiter and soft clipper |

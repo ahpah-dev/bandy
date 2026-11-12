@@ -1,0 +1,14 @@
+{
+  "name": "bandy",
+  "version": "1.0.0",
+  "description": "A free, open-source music studio that runs entirely in your browser.",
+  "license": "Unlicense",
+  "private": false,
+  "type": "module",
+  "homepage": "https://ahpah-dev.github.io/bandy/",
+  "repository": { "type": "git", "url": "git+https://github.com/ahpah-dev/bandy.git" },
+  "keywords": ["daw", "music", "web-audio", "midi", "studio", "open-source"],
+  "scripts": {
+    "start": "python tools/serve.py 5173"
+  }
+}
